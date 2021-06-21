@@ -4,7 +4,7 @@ from math import floor
 from .mol_key_test import MolKeyDataset
 
 
-def load_dataset(dataset_name, data_path, normal_class):
+def load_dataset(dataset_name, data_path):
     """Loads the dataset."""
 
     implemented_datasets = ("mol_key_test",)
@@ -15,8 +15,10 @@ def load_dataset(dataset_name, data_path, normal_class):
 
     if dataset_name == 'mol_key_test':
 
-        data_csv = os.path.join(data_path, "morgan_matrix.csv")
-        labels_csv = os.path.join(data_path, "morgan_matrix_meta.csv")
+        data_csv = os.path.join(data_path, "fingerprints_processed.csv")
+        labels_csv = os.path.join(data_path, "meta.csv")
+
+
         if not os.path.exists(data_csv):
             raise FileNotFoundError
         elif not os.path.exists(labels_csv):
