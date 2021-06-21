@@ -13,31 +13,33 @@ from datasets.main import load_dataset
 
 def run_deep_svdd(
         dataset_name="mol_key_test",
-        net_name="basic_multilayer",
+        net_name="cocrystal_transformer",
         xp_path="../log/mol_key_test",
         data_path="../data/mol_key_test",
         load_config=None,
         load_model=None,
-        objective="one-class",
+        objective="soft-boundary",
         nu=0.1,
-        device="cpu",  # "cuda"
+        device="cuda",  # "cuda"
         seed=1,
         optimizer_name="amsgrad",
-        lr=0.0001,
-        n_epochs=150,
-        lr_milestone=(50,),
-        batch_size=200,
-        weight_decay=0.5e-6,
+        lr=0.000001,
+        n_epochs=30,
+        lr_milestone=tuple(),
+        batch_size=500,
+        weight_decay=1e-5,
         pretrain=True,
         ae_optimizer_name=None,
-        ae_lr=0.00005,
-        ae_n_epochs=100,
-        ae_lr_milestone=(10, 50),
+        ae_lr=None,
+        ae_n_epochs=None,
+        ae_lr_milestone=None,
         ae_batch_size=None,
-        ae_weight_decay=0.5e-3,
+        ae_weight_decay=1e-3,
         n_jobs_dataloader=0,
         normal_class=1,
-        ae_loss_function=torch.nn.BCELoss()
+        ae_loss_function="bce",
+        rep_dim=150,
+        in_features=1943
 ):
     # Set ae parameters based on regular parameters as default
     if ae_optimizer_name is None:
@@ -103,14 +105,15 @@ def run_deep_svdd(
     # Default device to 'cpu' if cuda is not available
     if not torch.cuda.is_available():
         device = 'cpu'
+
     logger.info('Computation device: %s' % device)
     logger.info('Number of dataloader workers: %d' % n_jobs_dataloader)
 
     # Load data
-    dataset, dataset_labels = load_dataset(dataset_name, data_path, normal_class)
+    dataset, dataset_labels = load_dataset(dataset_name, data_path)
 
     # Initialize DeepSVDD model and set neural network \phi
-    deep_SVDD = DeepSVDD(cfg.settings['objective'], cfg.settings['nu'])
+    deep_SVDD = DeepSVDD(cfg.settings['objective'], cfg.settings['nu'], cfg.settings['rep_dim'], cfg.settings['in_features'])
     deep_SVDD.set_network(net_name)
 
     # If specified, load Deep SVDD model (radius R, center c, network weights, and possibly autoencoder weights)
