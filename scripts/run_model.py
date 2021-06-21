@@ -61,6 +61,9 @@ def run_deep_svdd(
     # Get configuration
     cfg = Config(locals().copy())
 
+    if ae_loss_function == "bce":
+        ae_loss_function = torch.nn.BCELoss()
+
     # Set up logging
     logging.basicConfig(level=logging.INFO)
     logger = logging.getLogger()
