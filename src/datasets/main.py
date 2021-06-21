@@ -24,8 +24,8 @@ def load_dataset(dataset_name, data_path):
         elif not os.path.exists(labels_csv):
             raise FileNotFoundError
 
-        x_data = np.loadtxt(data_csv, delimiter=",")
-        labels = np.loadtxt(labels_csv, delimiter=",", dtype=str)
+        x_data = np.loadtxt(data_csv, delimiter=",", comments=None)
+        labels = np.loadtxt(labels_csv, delimiter=",", dtype=str, comments=None)
         np.random.seed(1)
 
         def unison_shuffled_copies(a, b):
