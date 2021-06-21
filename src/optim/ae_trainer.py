@@ -32,7 +32,7 @@ class AETrainer(BaseTrainer):
                                amsgrad=self.optimizer_name == 'amsgrad')
 
         # Set learning rate scheduler
-        scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=self.lr_milestones, gamma=0.1)
+        scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=self.lr_milestones, gamma=0.2)
 
         # Training
         logger.info('Starting pretraining...')

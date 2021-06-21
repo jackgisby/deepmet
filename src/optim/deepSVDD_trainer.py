@@ -50,7 +50,7 @@ class DeepSVDDTrainer(BaseTrainer):
                                amsgrad=self.optimizer_name == 'amsgrad')
 
         # Set learning rate scheduler
-        scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=self.lr_milestones, gamma=0.1)
+        scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=self.lr_milestones, gamma=0.2)
 
         # Initialize hypersphere center c (if c not loaded)
         if self.c is None:
