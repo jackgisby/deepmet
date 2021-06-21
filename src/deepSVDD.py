@@ -25,7 +25,7 @@ class DeepSVDD(object):
         results: A dictionary to save the results.
     """
 
-    def __init__(self, objective: str = 'one-class', nu: float = 0.1):
+    def __init__(self, objective: str = 'one-class', nu: float = 0.1, rep_dim: int = 100, in_features: int = 2048):
         """Inits DeepSVDD with one of the two objectives and hyperparameter nu."""
 
         assert objective in ('one-class', 'soft-boundary'), "Objective must be either 'one-class' or 'soft-boundary'."
@@ -34,6 +34,9 @@ class DeepSVDD(object):
         self.nu = nu
         self.R = 0.0  # Hypersphere radius R
         self.c = None  # Hypersphere center c
+
+        self.rep_dim = rep_dim
+        self.in_features = in_features
 
         self.net_name = None
         self.net = None  # Neural network \phi
@@ -56,7 +59,7 @@ class DeepSVDD(object):
         """ Builds the neural network \phi. """
 
         self.net_name = net_name
-        self.net = build_network(net_name)
+        self.net = build_network(net_name, self.rep_dim, self.in_features)
 
     def train(self, dataset: BaseADDataset, optimizer_name: str = 'adam', lr: float = 0.001, n_epochs: int = 50,
               lr_milestones: tuple = (), batch_size: int = 128, weight_decay: float = 1e-6, device: str = 'cuda',
@@ -92,7 +95,7 @@ class DeepSVDD(object):
                  n_jobs_dataloader: int = 0, loss_function=torch.nn.BCELoss()):
         """ Pretrains the weights for the Deep SVDD network \phi via autoencoder. """
 
-        self.ae_net = build_autoencoder(self.net_name)
+        self.ae_net = build_autoencoder(self.net_name, self.rep_dim, self.in_features)
         self.ae_optimizer_name = optimizer_name
 
         self.ae_trainer = AETrainer(optimizer_name, lr=lr, n_epochs=n_epochs, lr_milestones=lr_milestones,

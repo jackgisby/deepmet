@@ -122,6 +122,8 @@ class DeepSVDDTrainer(BaseTrainer):
 
         # Testing
         logger.info('Starting testing...')
+        loss_epoch = 0.0
+        n_batches = 0
         start_time = time.time()
         idx_label_score = []
         net.eval()
@@ -138,10 +140,17 @@ class DeepSVDDTrainer(BaseTrainer):
                 else:
                     scores = dist
 
+                loss = torch.mean(dist)
+
                 # Save triples of (idx, label, score) in a list
                 idx_label_score += list(zip(idx.cpu().data.numpy().tolist(),
                                             labels.cpu().data.numpy().tolist(),
                                             scores.cpu().data.numpy().tolist()))
+
+                loss_epoch += loss.item()
+                n_batches += 1
+
+        logger.info('Test set Loss: {:.8f}'.format(loss_epoch / n_batches))
 
         self.test_time = time.time() - start_time
         logger.info('Testing time: %.3f' % self.test_time)
