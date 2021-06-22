@@ -18,7 +18,6 @@ def load_dataset(dataset_name, data_path):
         data_csv = os.path.join(data_path, "fingerprints_processed.csv")
         labels_csv = os.path.join(data_path, "meta.csv")
 
-
         if not os.path.exists(data_csv):
             raise FileNotFoundError
         elif not os.path.exists(labels_csv):

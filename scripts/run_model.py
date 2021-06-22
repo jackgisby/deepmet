@@ -104,6 +104,7 @@ def run_deep_svdd(
 
     # Default device to 'cpu' if cuda is not available
     if not torch.cuda.is_available():
+        print("cuda not available: defaulting to cpu")
         device = 'cpu'
 
     logger.info('Computation device: %s' % device)
