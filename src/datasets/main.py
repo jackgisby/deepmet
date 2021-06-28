@@ -15,16 +15,27 @@ def load_dataset(dataset_name, data_path):
 
     if dataset_name == 'mol_key_test':
 
-        data_csv = os.path.join(data_path, "fingerprints_processed.csv")
-        labels_csv = os.path.join(data_path, "meta.csv")
+        self_data_csv = os.path.join(data_path, "hmdb_fingerprints_processed.csv")
+        self_labels_csv = os.path.join(data_path, "hmdb_meta.csv")
 
-        if not os.path.exists(data_csv):
+        other_data_csv = os.path.join(data_path, "zinc_fingerprints_processed.csv")
+        other_labels_csv = os.path.join(data_path, "zinc_meta.csv")
+
+        if not os.path.exists(self_data_csv):
             raise FileNotFoundError
-        elif not os.path.exists(labels_csv):
+        elif not os.path.exists(self_labels_csv):
+            raise FileNotFoundError
+        if not os.path.exists(other_data_csv):
+            raise FileNotFoundError
+        elif not os.path.exists(other_labels_csv):
             raise FileNotFoundError
 
-        x_data = np.loadtxt(data_csv, delimiter=",", comments=None)
-        labels = np.loadtxt(labels_csv, delimiter=",", dtype=str, comments=None)
+        self_x_data = np.loadtxt(self_data_csv, delimiter=",", comments=None)
+        self_labels = np.loadtxt(self_labels_csv, delimiter=",", dtype=str, comments=None)
+
+        other_x_data = np.loadtxt(other_data_csv, delimiter=",", comments=None)
+        other_labels = np.loadtxt(other_labels_csv, delimiter=",", dtype=str, comments=None)
+
         np.random.seed(1)
 
         def unison_shuffled_copies(a, b):
@@ -32,14 +43,19 @@ def load_dataset(dataset_name, data_path):
             p = np.random.permutation(len(a))
             return a[p], b[p]
 
-        x_data, labels = unison_shuffled_copies(x_data, labels)
+        self_x_data, self_labels = unison_shuffled_copies(self_x_data, self_labels)
+        other_x_data, other_labels = unison_shuffled_copies(other_x_data, other_labels)
 
-        num_rows, num_cols = x_data.shape
+        num_rows, num_cols = self_x_data.shape
         train_test_split_index = floor(num_rows * 0.8)
 
         train_index = range(0, train_test_split_index)
+
+        x_data = np.concatenate([self_x_data, other_x_data])
+        labels = np.concatenate([self_labels, other_labels])
+        num_rows, num_cols = x_data.shape
         test_index = range(train_test_split_index, num_rows)
 
-        dataset = MolKeyDataset(root=data_path, train_idx=train_index, test_idx=test_index, data=x_data)
+        dataset = MolKeyDataset(root=data_path, train_idx=train_index, test_idx=test_index, data=x_data, labels=labels[:,2])
 
     return dataset, labels
