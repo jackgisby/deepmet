@@ -2,26 +2,39 @@ import pandas as pd
 
 
 if __name__ == '__main__':
-    fingerprints = pd.read_csv("../data/mol_key_test/fingerprints.csv", dtype=int, header=None, index_col=False)
 
-    num_rows, num_cols = fingerprints.shape
-    print(num_rows)
-    initial_index = fingerprints.index
+    hmdb_fingerprints = pd.read_csv("../data/mol_key_test/hmdb_fingerprints.csv", dtype=int, header=None, index_col=False)
+    zinc_fingerprints = pd.read_csv("../data/mol_key_test/zinc_fingerprints.csv", dtype=int, header=None, index_col=False)
 
-    fingerprints.columns = range(0, num_cols)
-    print(fingerprints)
+    hmdb_num_rows, hmdb_num_cols = hmdb_fingerprints.shape
+    print(hmdb_num_rows)
+    hmdb_initial_index = hmdb_fingerprints.index
+
+    hmdb_fingerprints.columns = range(0, hmdb_num_cols)
+    print(hmdb_fingerprints)
+
+    zinc_num_rows, zinc_num_cols = zinc_fingerprints.shape
+    print(zinc_num_rows)
+    zinc_initial_index = zinc_fingerprints.index
+
+    assert zinc_num_cols == hmdb_num_cols
+
+    zinc_fingerprints.columns = range(0, hmdb_num_cols)
+    print(zinc_fingerprints)
+
+    assert all(hmdb_fingerprints.columns == zinc_fingerprints.columns)
 
     # remove unbalanced features
     unbalanced = 0.1
     cols_to_remove = []
-    for i, cname in enumerate(fingerprints):
+    for i, cname in enumerate(hmdb_fingerprints):
 
-        n_unique = fingerprints[cname].nunique()
+        n_unique = hmdb_fingerprints[cname].nunique()
         if n_unique == 1:
             cols_to_remove.append(i)
 
         elif n_unique == 2:
-            balance_table = fingerprints[cname].value_counts()
+            balance_table = hmdb_fingerprints[cname].value_counts()
             balance = balance_table[0] / (balance_table[1] + balance_table[0])
 
             if balance > (1 - unbalanced) or balance < unbalanced:
@@ -29,16 +42,22 @@ if __name__ == '__main__':
         else:
             assert False
 
-    fingerprints.drop(cols_to_remove, axis=1, inplace=True)
-    print(fingerprints)
+    hmdb_fingerprints.drop(cols_to_remove, axis=1, inplace=True)
+    print(hmdb_fingerprints)
+    zinc_fingerprints.drop(cols_to_remove, axis=1, inplace=True)
+    print(zinc_fingerprints)
 
-    # remove redundant features
-    fingerprints = fingerprints.T.drop_duplicates().T
-    print(fingerprints)
+    hmdb_num_rows_processed, hmdb_num_cols_processed = hmdb_fingerprints.shape
+    print(hmdb_num_cols_processed)
+    assert hmdb_num_rows_processed == hmdb_num_rows
+    assert all(hmdb_fingerprints.index == hmdb_initial_index)
 
-    num_rows_processed, num_cols_processed = fingerprints.shape
-    print(num_cols_processed)
-    assert num_rows_processed == num_rows
-    assert all(fingerprints.index == initial_index)
+    zinc_num_rows_processed, zinc_num_cols_processed = zinc_fingerprints.shape
+    print(zinc_num_cols_processed)
+    assert zinc_num_rows_processed == zinc_num_rows
+    assert all(zinc_fingerprints.index == zinc_initial_index)
 
-    fingerprints.to_csv("../data/mol_key_test/fingerprints_processed.csv", header=False, index=False)
+    assert all(hmdb_fingerprints.columns == zinc_fingerprints.columns)
+
+    hmdb_fingerprints.to_csv("../data/mol_key_test/hmdb_fingerprints_processed.csv", header=False, index=False)
+    zinc_fingerprints.to_csv("../data/mol_key_test/zinc_fingerprints_processed.csv", header=False, index=False)
