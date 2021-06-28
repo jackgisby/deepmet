@@ -23,23 +23,22 @@ def run_deep_svdd(
         device="cuda",  # "cuda"
         seed=1,
         optimizer_name="amsgrad",
-        lr=0.000001,
-        n_epochs=30,
+        lr=0.00001,
+        n_epochs=20,
         lr_milestone=tuple(),
         batch_size=500,
         weight_decay=1e-5,
         pretrain=True,
         ae_optimizer_name=None,
-        ae_lr=None,
+        ae_lr=0.00001,
         ae_n_epochs=None,
         ae_lr_milestone=None,
         ae_batch_size=None,
         ae_weight_decay=1e-3,
         n_jobs_dataloader=0,
-        normal_class=1,
         ae_loss_function="bce",
         rep_dim=150,
-        in_features=1943
+        in_features=2749
 ):
     # Set ae parameters based on regular parameters as default
     if ae_optimizer_name is None:
@@ -83,7 +82,6 @@ def run_deep_svdd(
     logger.info('Export path is %s.' % xp_path)
 
     logger.info('Dataset: %s' % dataset_name)
-    logger.info('Normal class: %d' % normal_class)
     logger.info('Network: %s' % net_name)
 
     # If specified, load experiment config from JSON-file
@@ -170,20 +168,10 @@ def run_deep_svdd(
     # Plot most anomalous and most normal (within-class) test samples
     indices, labels, scores = zip(*deep_SVDD.results['test_scores'])
     indices, labels, scores = np.array(indices), np.array(labels), np.array(scores)
-    idx_sorted = indices[labels == 0][np.argsort(scores[labels == 0])]  # sorted from lowest to highest anomaly score
 
-    # record the most "normal" and the most outlying metabolites
-    if dataset_name == "mol_key_test":
-
-        label_normals = dataset_labels[idx_sorted[:32]]
-        label_normals = np.append(label_normals, np.zeros([len(label_normals), 1]), 1)
-        label_normals[:, -1] = np.array(scores[idx_sorted[:32] - min(indices)])
-        np.savetxt(xp_path + '/normals.csv', label_normals, fmt="%s", delimiter=",")
-
-        label_outliers = dataset_labels[idx_sorted[-32:]]
-        label_outliers = np.append(label_outliers, np.zeros([len(label_outliers), 1]), 1)
-        label_outliers[:, -1] = np.array(scores[idx_sorted[-32:] - min(indices)])
-        np.savetxt(xp_path + '/outliers.csv', label_outliers, fmt="%s", delimiter=",")
+    test_predictions = dataset_labels[indices]
+    test_predictions[:, -1] = np.array(scores)
+    np.savetxt(xp_path + '/test_predictions.csv', test_predictions, fmt="%s", delimiter=",")
 
     # Save results, model, and configuration
     deep_SVDD.save_results(export_json=xp_path + '/results.json')
