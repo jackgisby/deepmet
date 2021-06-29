@@ -1,9 +1,11 @@
 import os
 import sys
+import csv
 import torch
 import logging
 import random
 import numpy as np
+from statistics import mean
 
 sys.path.append(os.path.join("..", "src"))
 from utils.config import Config
@@ -11,53 +13,116 @@ from deepSVDD import DeepSVDD
 from datasets.main import load_dataset
 
 
+def model_cross_validation(cfg, logger, fold_dataset, net_name, pretrain, device, n_jobs_dataloader, ae_loss_function, n_tuning_rounds, tuneable_params):
+
+    all_params_tested = []
+    all_params_scores = []
+    for i in range(n_tuning_rounds):
+
+        initialised_params = {}
+        for param in tuneable_params.keys():
+            if len(tuneable_params[param]) == 0:
+                initialised_params[param] = tuneable_params[param]
+            else:
+                if param == "n_epochs":
+                    initialised_params[param] = random.randint(tuneable_params[param][0], tuneable_params[param][1])
+                elif param == "rep_dim":
+                    initialised_params[param] = random.randint(tuneable_params[param][0], tuneable_params[param][1]) * 10
+                else:
+                    initialised_params[param] = 10 ** (-1 * random.uniform(tuneable_params[param][0], tuneable_params[param][1]))
+
+        all_params_tested.append(initialised_params)
+        print('For tuning round {}, testing parameters: {}'.format(str(i), str(initialised_params)))
+
+        fold_scores = []
+        for j in range(len(fold_dataset)):
+            crossval_deep_SVDD = train_single_model(cfg, logger, fold_dataset[j], net_name, pretrain, device, n_jobs_dataloader, ae_loss_function, initialised_params)
+            fold_scores.append(crossval_deep_SVDD.results['test_loss'])
+
+        all_params_scores.append(mean(fold_scores))
+
+    val, idx = min((val, idx) for (idx, val) in enumerate(all_params_scores))
+    return all_params_tested, all_params_scores, idx
+
+
+def train_single_model(cfg, logger, dataset, net_name, pretrain, device, n_jobs_dataloader, ae_loss_function, model_params):
+
+    # Initialize DeepSVDD model and set neural network \phi
+    deep_SVDD = DeepSVDD(cfg.settings['objective'], cfg.settings['nu'], model_params["rep_dim"], cfg.settings['in_features'])
+    deep_SVDD.set_network(net_name)
+
+    logger.info('Pretraining: %s' % pretrain)
+    if pretrain:
+
+        # Log pretraining details
+        logger.info('Pretraining optimizer: %s' % cfg.settings['ae_optimizer_name'])
+        logger.info('Pretraining learning rate: %g' % model_params['ae_lr'])
+        logger.info('Pretraining epochs: %d' % model_params['n_epochs'])
+        logger.info('Pretraining batch size: %d' % cfg.settings['ae_batch_size'])
+        logger.info('Pretraining weight decay: %g' % model_params['ae_weight_decay'])
+
+        # Pretrain model on dataset (via autoencoder)
+        deep_SVDD.pretrain(dataset,
+                           optimizer_name=cfg.settings['ae_optimizer_name'],
+                           lr=model_params['ae_lr'],
+                           n_epochs=model_params['n_epochs'],
+                           lr_milestones=tuple(),
+                           batch_size=cfg.settings['ae_batch_size'],
+                           weight_decay=model_params['ae_weight_decay'],
+                           device=device,
+                           n_jobs_dataloader=n_jobs_dataloader,
+                           loss_function=ae_loss_function)
+
+    # Log training details
+    logger.info('Training optimizer: %s' % cfg.settings['optimizer_name'])
+    logger.info('Training learning rate: %g' % model_params['lr'])
+    logger.info('Training epochs: %d' % model_params['n_epochs'])
+    logger.info('Training batch size: %d' % cfg.settings['batch_size'])
+    logger.info('Training weight decay: %g' % model_params['weight_decay'])
+
+    # Train model on dataset
+    deep_SVDD.train(dataset,
+                    optimizer_name=cfg.settings['optimizer_name'],
+                    lr=model_params['lr'],
+                    n_epochs=model_params['n_epochs'],
+                    lr_milestones=tuple(),
+                    batch_size=cfg.settings['batch_size'],
+                    weight_decay=model_params['weight_decay'],
+                    device=device,
+                    n_jobs_dataloader=n_jobs_dataloader)
+
+    # Test model
+    deep_SVDD.test(dataset, device=device, n_jobs_dataloader=n_jobs_dataloader)
+
+    return deep_SVDD
+
+
 def run_deep_svdd(
         dataset_name="mol_key_test",
         net_name="cocrystal_transformer",
         xp_path="../log/mol_key_test",
         data_path="../data/mol_key_test",
-        load_config=None,
-        load_model=None,
         objective="soft-boundary",
         nu=0.1,
         device="cuda",  # "cuda"
         seed=1,
         optimizer_name="amsgrad",
-        lr=0.00001,
-        n_epochs=20,
-        lr_milestone=tuple(),
         batch_size=500,
-        weight_decay=1e-5,
         pretrain=True,
         ae_optimizer_name=None,
-        ae_lr=0.00001,
-        ae_n_epochs=None,
-        ae_lr_milestone=None,
         ae_batch_size=None,
-        ae_weight_decay=1e-3,
         n_jobs_dataloader=0,
         ae_loss_function="bce",
-        rep_dim=150,
-        in_features=2749
+        in_features=2749,
+        n_tuning_rounds=30,
+        tuneable_params={"rep_dim": (2, 30), "weight_decay": (2, 6), "ae_weight_decay": (2, 6), "lr": (4, 8), "ae_lr": (4, 8), "n_epochs": (5, 30)}
 ):
     # Set ae parameters based on regular parameters as default
     if ae_optimizer_name is None:
         ae_optimizer_name = optimizer_name
 
-    if ae_lr is None:
-        ae_lr = lr
-
-    if ae_n_epochs is None:
-        ae_n_epochs = n_epochs
-
-    if ae_lr_milestone is None:
-        ae_lr_milestone = lr_milestone
-
     if ae_batch_size is None:
         ae_batch_size = batch_size
-
-    if ae_weight_decay is None:
-        ae_weight_decay = weight_decay
 
     # Get configuration
     cfg = Config(locals().copy())
@@ -84,11 +149,6 @@ def run_deep_svdd(
     logger.info('Dataset: %s' % dataset_name)
     logger.info('Network: %s' % net_name)
 
-    # If specified, load experiment config from JSON-file
-    if load_config:
-        cfg.load_config(import_json=load_config)
-        logger.info('Loaded configuration from %s.' % load_config)
-
     # Print configuration
     logger.info('Deep SVDD objective: %s' % cfg.settings['objective'])
     logger.info('Nu-paramerter: %.2f' % cfg.settings['nu'])
@@ -109,61 +169,27 @@ def run_deep_svdd(
     logger.info('Number of dataloader workers: %d' % n_jobs_dataloader)
 
     # Load data
-    dataset, dataset_labels = load_dataset(dataset_name, data_path)
+    dataset, dataset_labels, fold_dataset = load_dataset(dataset_name, data_path)
+    logger.info('Parameters to be tuned are: %s' % tuneable_params)
 
-    # Initialize DeepSVDD model and set neural network \phi
-    deep_SVDD = DeepSVDD(cfg.settings['objective'], cfg.settings['nu'], cfg.settings['rep_dim'], cfg.settings['in_features'])
-    deep_SVDD.set_network(net_name)
+    all_params, all_scores, final_idx = model_cross_validation(cfg, logger, fold_dataset, net_name, pretrain, device, n_jobs_dataloader, ae_loss_function, n_tuning_rounds, tuneable_params)
+    final_params = all_params[final_idx]
 
-    # If specified, load Deep SVDD model (radius R, center c, network weights, and possibly autoencoder weights)
-    if load_model:
-        deep_SVDD.load_model(model_path=load_model, load_ae=True)
-        logger.info('Loading model from %s.' % load_model)
+    print(all_params)
+    print(all_scores)
+    print(final_params)
 
-    logger.info('Pretraining: %s' % pretrain)
-    if pretrain:
+    with open(xp_path + "/all_parameters.csv", "w", newline="") as all_parameters:
+        all_parameters_csv = csv.writer(all_parameters)
 
-        # Log pretraining details
-        logger.info('Pretraining optimizer: %s' % cfg.settings['ae_optimizer_name'])
-        logger.info('Pretraining learning rate: %g' % cfg.settings['ae_lr'])
-        logger.info('Pretraining epochs: %d' % cfg.settings['ae_n_epochs'])
-        logger.info('Pretraining learning rate scheduler milestones: %s' % (cfg.settings['ae_lr_milestone'],))
-        logger.info('Pretraining batch size: %d' % cfg.settings['ae_batch_size'])
-        logger.info('Pretraining weight decay: %g' % cfg.settings['ae_weight_decay'])
+        all_parameters_csv.writerow(list(all_params[0].keys()) + ["score"])
 
-        # Pretrain model on dataset (via autoencoder)
-        deep_SVDD.pretrain(dataset,
-                           optimizer_name=cfg.settings['ae_optimizer_name'],
-                           lr=cfg.settings['ae_lr'],
-                           n_epochs=cfg.settings['ae_n_epochs'],
-                           lr_milestones=cfg.settings['ae_lr_milestone'],
-                           batch_size=cfg.settings['ae_batch_size'],
-                           weight_decay=cfg.settings['ae_weight_decay'],
-                           device=device,
-                           n_jobs_dataloader=n_jobs_dataloader,
-                           loss_function=ae_loss_function)
+        assert len(all_params) == len(all_scores)
+        for i in range(len(all_params)):
+            all_parameters_csv.writerow(list(all_params[i].values()) + [all_scores[i]])
 
-    # Log training details
-    logger.info('Training optimizer: %s' % cfg.settings['optimizer_name'])
-    logger.info('Training learning rate: %g' % cfg.settings['lr'])
-    logger.info('Training epochs: %d' % cfg.settings['n_epochs'])
-    logger.info('Training learning rate scheduler milestones: %s' % (cfg.settings['lr_milestone'],))
-    logger.info('Training batch size: %d' % cfg.settings['batch_size'])
-    logger.info('Training weight decay: %g' % cfg.settings['weight_decay'])
-
-    # Train model on dataset
-    deep_SVDD.train(dataset,
-                    optimizer_name=cfg.settings['optimizer_name'],
-                    lr=cfg.settings['lr'],
-                    n_epochs=cfg.settings['n_epochs'],
-                    lr_milestones=cfg.settings['lr_milestone'],
-                    batch_size=cfg.settings['batch_size'],
-                    weight_decay=cfg.settings['weight_decay'],
-                    device=device,
-                    n_jobs_dataloader=n_jobs_dataloader)
-
-    # Test model
-    deep_SVDD.test(dataset, device=device, n_jobs_dataloader=n_jobs_dataloader)
+    logger.info('The parameters of the final model are: %s' % str(final_params))
+    deep_SVDD = train_single_model(cfg, logger, dataset, net_name, pretrain, device, n_jobs_dataloader, ae_loss_function, final_params)
 
     # Plot most anomalous and most normal (within-class) test samples
     indices, labels, scores = zip(*deep_SVDD.results['test_scores'])

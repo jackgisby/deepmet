@@ -45,7 +45,6 @@ def load_dataset(dataset_name, data_path):
 
         num_rows, num_cols = self_x_data.shape
         train_test_split_index = floor(num_rows * 0.8)
-
         train_index = range(0, train_test_split_index)
 
         x_data = np.concatenate([self_x_data, other_x_data])
@@ -55,4 +54,23 @@ def load_dataset(dataset_name, data_path):
 
         dataset = MolKeyDataset(root=data_path, train_idx=train_index, test_idx=test_index, data=x_data, labels=labels[:,2])
 
-    return dataset, labels
+        test_x_data = self_x_data[train_index]
+
+        num_rows, num_cols = test_x_data.shape
+        prev_index = 0
+        fold_datasets = []
+
+        for i in range(5):
+            if i == 4:
+                fold_split_index = num_rows
+            else:
+                fold_split_index = floor(num_rows * ((i + 1) / 5))
+
+            fold_validation_index = range(prev_index, fold_split_index)
+            fold_train_index = [index for index in range(num_rows) if index not in fold_validation_index]
+
+            fold_datasets.append(MolKeyDataset(root=data_path, train_idx=fold_train_index, test_idx=fold_validation_index, data=test_x_data, labels=None))
+
+            prev_index = fold_split_index
+
+    return dataset, labels, fold_datasets
