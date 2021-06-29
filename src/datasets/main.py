@@ -10,9 +10,6 @@ def load_dataset(dataset_name, data_path):
     implemented_datasets = ("mol_key_test",)
     assert dataset_name in implemented_datasets
 
-    dataset = None
-    labels = None
-
     if dataset_name == 'mol_key_test':
 
         self_data_csv = os.path.join(data_path, "hmdb_fingerprints_processed.csv")

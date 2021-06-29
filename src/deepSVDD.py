@@ -53,7 +53,10 @@ class DeepSVDD(object):
             'test_auc': None,
             'test_time': None,
             'test_scores': None,
+            'test_loss': None
         }
+
+        self.visualisation = None
 
     def set_network(self, net_name):
         """ Builds the neural network \phi. """
@@ -89,6 +92,17 @@ class DeepSVDD(object):
         self.results['test_auc'] = self.trainer.test_auc
         self.results['test_time'] = self.trainer.test_time
         self.results['test_scores'] = self.trainer.test_scores
+        self.results['test_loss'] = self.trainer.test_loss
+
+    def visualise_network(self, dataset: BaseADDataset, device: str = 'cuda', n_jobs_dataloader: int = 0):
+
+        if self.trainer is None:
+            self.trainer = DeepSVDDTrainer(self.objective, self.R, self.c, self.nu,
+                                           device=device, n_jobs_dataloader=n_jobs_dataloader)
+
+        self.trainer.visualise(dataset, self.net)
+
+        self.visualisation = self.trainer.latent_visualisation
 
     def pretrain(self, dataset: BaseADDataset, optimizer_name: str = 'adam', lr: float = 0.001, n_epochs: int = 100,
                  lr_milestones: tuple = (), batch_size: int = 128, weight_decay: float = 1e-6, device: str = 'cuda',
