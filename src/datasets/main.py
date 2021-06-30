@@ -1,11 +1,16 @@
 import os
+import random
 import numpy as np
 from math import floor
 from .mol_key_test import MolKeyDataset
 
 
-def load_dataset(dataset_name, data_path, test_data_prefix=None):
+def load_dataset(dataset_name, data_path, test_data_prefix=None, seed=1):
     """Loads the dataset."""
+    
+    if seed != -1:
+        random.seed(seed)
+        np.random.seed(seed)
 
     implemented_datasets = ("mol_key_test",)
     assert dataset_name in implemented_datasets
@@ -29,6 +34,12 @@ def load_dataset(dataset_name, data_path, test_data_prefix=None):
             return a[p], b[p]
 
         self_x_data, self_labels = unison_shuffled_copies(self_x_data, self_labels)
+        
+        num_rows, num_cols = self_x_data.shape
+        train_val_split_index = floor(num_rows * 0.8)
+        train_index = range(0, train_val_split_index)
+        val_test_split_index = floor(num_rows * 0.9)
+        val_index = range(train_val_split_index, val_test_split_index)
 
         if test_data_prefix is not None:
             other_data_csv = os.path.join(data_path, test_data_prefix + "_fingerprints_processed.csv")
@@ -43,12 +54,6 @@ def load_dataset(dataset_name, data_path, test_data_prefix=None):
             other_labels = np.loadtxt(other_labels_csv, delimiter=",", dtype=str, comments=None)
 
             other_x_data, other_labels = unison_shuffled_copies(other_x_data, other_labels)
-
-        num_rows, num_cols = self_x_data.shape
-        train_val_split_index = floor(num_rows * 0.8)
-        train_index = range(0, train_val_split_index)
-        val_test_split_index = floor(num_rows * 0.9)
-        val_index = range(train_val_split_index, val_test_split_index)
 
         if test_data_prefix is not None:
             x_data = np.concatenate([self_x_data, other_x_data])
@@ -65,6 +70,5 @@ def load_dataset(dataset_name, data_path, test_data_prefix=None):
 
         full_dataset = MolKeyDataset(root=data_path, train_idx=train_index, test_idx=test_index, data=x_data, labels=labels[:,2])
         val_dataset = MolKeyDataset(root=data_path, train_idx=train_index, test_idx=val_index, data=x_data, labels=labels[:,2])
-
 
     return full_dataset, labels, val_dataset

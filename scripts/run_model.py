@@ -158,7 +158,7 @@ def run_deep_svdd(
     logger.info('Number of dataloader workers: %d' % n_jobs_dataloader)
 
     # Load data
-    dataset, dataset_labels, validation_dataset = load_dataset(dataset_name, data_path, "zinc")
+    dataset, dataset_labels, validation_dataset = load_dataset(dataset_name, data_path, "zinc", seed)
     logger.info('Parameters to be tuned are: %s' % tuneable_params)
 
     all_params, all_scores, final_idx, deep_SVDD = model_validation(cfg, validation_dataset, net_name, pretrain, device, n_jobs_dataloader, ae_loss_function, n_tuning_rounds, tuneable_params)
@@ -181,14 +181,6 @@ def run_deep_svdd(
     deep_SVDD.test(dataset, device=device, n_jobs_dataloader=n_jobs_dataloader)
 
     logger.info('The hypersphere radius is: %s' % str(deep_SVDD.R))
-
-    # Plot most anomalous and most normal (within-class) test samples
-    indices, labels, scores = zip(*deep_SVDD.results['test_scores'])
-    indices, labels, scores = np.array(indices), np.array(labels), np.array(scores)
-
-    test_predictions = dataset_labels[indices]
-    test_predictions[:, -1] = np.array(scores)
-    np.savetxt(xp_path + '/test_predictions.csv', test_predictions, fmt="%s", delimiter=",")
 
     # Save results, model, and configuration
     deep_SVDD.save_results(export_json=xp_path + '/results.json')

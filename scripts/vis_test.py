@@ -1,6 +1,7 @@
 import os
 import sys
 import torch
+import random
 import logging
 import numpy as np
 
@@ -19,7 +20,8 @@ def visualise_deep_svdd(
     load_config="../log/mol_key_test/config.json",
     load_model="../log/mol_key_test/model.tar",
     device="cuda",
-    n_jobs_dataloader=0
+    n_jobs_dataloader=0,
+    seed=1
 ):
 
     # Get configuration
@@ -29,6 +31,13 @@ def visualise_deep_svdd(
 
     cfg.load_config(import_json=load_config)
     logger.info('Loaded configuration from %s.' % load_config)
+
+    # Set seed
+    if cfg.settings['seed'] != -1:
+        random.seed(cfg.settings['seed'])
+        np.random.seed(cfg.settings['seed'])
+        torch.manual_seed(cfg.settings['seed'])
+        logger.info('Set seed to %d.' % cfg.settings['seed'])
 
     # Default device to 'cpu' if cuda is not available
     if not torch.cuda.is_available():
@@ -44,9 +53,16 @@ def visualise_deep_svdd(
 
     for prefix in test_prefix:
 
-        dataset, dataset_labels, val_dataset = load_dataset(dataset_name, data_path, prefix)
+        dataset, dataset_labels, val_dataset = load_dataset(dataset_name, data_path, prefix, seed)
 
         deep_SVDD.test(dataset, device=device, n_jobs_dataloader=n_jobs_dataloader)
+
+        indices, labels, scores = zip(*deep_SVDD.results['test_scores'])
+        indices, labels, scores = np.array(indices), np.array(labels), np.array(scores)
+
+        test_predictions = dataset_labels[indices]
+        test_predictions[:, -1] = np.array(scores)
+        np.savetxt(xp_path + '/' + prefix + '_test_predictions.csv', test_predictions, fmt="%s", delimiter=",")
 
         deep_SVDD.visualise_network(dataset, device=device, n_jobs_dataloader=n_jobs_dataloader)
 
@@ -54,7 +70,7 @@ def visualise_deep_svdd(
         indices, labels, latent = np.array(indices), np.array(labels), np.array(latent)
 
         latent[:, -1] = dataset_labels[indices, 2]
-        np.savetxt(xp_path + '/latent.csv', latent, fmt="%s", delimiter=",")
+        np.savetxt(xp_path + '/ + ' + prefix + '_latent.csv', latent, fmt="%s", delimiter=",")
 
 
 if __name__ == '__main__':
