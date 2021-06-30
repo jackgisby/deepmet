@@ -84,6 +84,38 @@ def get_fingerprint_methods():
     }
 
 
+def get_fingerprints_from_smiles(filename, prefix, smiles_col, first_row, subset_n=20000):
+
+    with open("../../../../Data/other_databases/" + filename, "r", encoding="utf8") as structures, \
+         open("../data/mol_key_test/" + prefix.lower() + "_fingerprints.csv", "w", newline="") as structure_fingerprint_matrix, \
+         open("../data/mol_key_test/" + prefix.lower() + "_meta.csv", "w", newline="") as structure_meta:
+
+        structure_csv = csv.reader(structures, delimiter="\t")
+        structure_matrix_csv = csv.writer(structure_fingerprint_matrix)
+        structure_meta_csv = csv.writer(structure_meta)
+
+        structure_subset = set()
+
+        for row in structure_csv:
+
+            if row[0] == first_row:
+                continue
+
+            smiles = smiles_qc(row[smiles_col])
+
+            if smiles is not None and smiles != "":
+                structure_subset.add(smiles)
+
+        structure_subset = sample(structure_subset, subset_n)
+
+        for i, smiles in enumerate(structure_subset):
+
+            mol = Chem.MolFromSmiles(smiles)
+
+            structure_meta_csv.writerow([prefix + "_" + str(i), smiles])
+            structure_matrix_csv.writerow(smiles_to_matrix(smiles, mol, fingerprint_methods))
+
+
 if __name__ == "__main__":
 
     RDLogger.DisableLog('rdApp.*')
@@ -95,65 +127,13 @@ if __name__ == "__main__":
 
     fingerprint_methods = get_fingerprint_methods()
 
-    with open("../../../../Data/other_databases/chembl_28_chemreps.txt", "r", encoding="utf8") as chembls, \
-         open("../data/mol_key_test/chembl_fingerprints.csv", "w", newline="") as chembl_fingerprint_matrix, \
-         open("../data/mol_key_test/chembl_meta.csv", "w", newline="") as chembl_meta:
+    filenames = ["chembl_28_chemreps.txt"]  # , "10_prop.csv"
+    prefixes = ["CHEMBL"],  # , "ZINC"
+    smiles_cols = [1],  # , 10
+    first_rows = ["chembl_id"]  # , "ZINC_ID"
 
-        chembl_csv = csv.reader(chembls, delimiter="\t")
-        chembl_matrix_csv = csv.writer(chembl_fingerprint_matrix)
-        chembl_meta_csv = csv.writer(chembl_meta)
-
-        chembl_subset = set()
-
-        # 0: chembl_ID, 1: smiles
-        for row in chembl_csv:
-
-            if row[0] == "chembl_id":
-                continue
-
-            smiles = smiles_qc(row[1])
-
-            if smiles is not None and smiles != "":
-                chembl_subset.add(smiles)
-
-        chembl_subset = sample(chembl_subset, 20000)
-
-        for i, smiles in enumerate(chembl_subset):
-
-            mol = Chem.MolFromSmiles(smiles)
-
-            chembl_meta_csv.writerow(["chembl_" + str(i), smiles])
-            chembl_matrix_csv.writerow(smiles_to_matrix(smiles, mol, fingerprint_methods))
-
-    # with open("../../../../Data/zinc12/10_prop.csv", "r", encoding="utf8") as zincs, \
-    #      open("../data/mol_key_test/zinc_fingerprints.csv", "w", newline="") as zinc_fingerprint_matrix, \
-    #      open("../data/mol_key_test/zinc_meta.csv", "w", newline="") as zinc_meta:
-    #
-    #     zinc_csv = csv.reader(zincs, delimiter="\t")
-    #     zinc_matrix_csv = csv.writer(zinc_fingerprint_matrix)
-    #     zinc_meta_csv = csv.writer(zinc_meta)
-    #
-    #     zinc_subset = set()
-    #
-    #     # 0: ZINC_ID, 10: smiles
-    #     for row in zinc_csv:
-    #
-    #         if row[0] == "ZINC_ID":
-    #             continue
-    #
-    #         smiles = smiles_qc(row[10])
-    #
-    #         if smiles is not None and smiles != "":
-    #             zinc_subset.add(smiles)
-    #
-    #     zinc_subset = sample(zinc_subset, 20000)
-    #
-    #     for i, smiles in enumerate(zinc_subset):
-    #
-    #         mol = Chem.MolFromSmiles(smiles)
-    #
-    #         zinc_meta_csv.writerow(["ZINC_" + str(i), smiles])
-    #         zinc_matrix_csv.writerow(smiles_to_matrix(smiles, mol, fingerprint_methods))
+    for filename, prefix, smiles_col, first_row in zip(filenames, prefixes, smiles_cols, first_rows):
+        get_fingerprints_from_smiles(filename, prefix, smiles_col, first_row)
 
     # with open("../../../../Data/hmdb/hmdb_metabolites/metabolites-2021-06-20", "r", encoding="utf8") as hmdbs, \
     #      open("../data/mol_key_test/hmdb_fingerprints.csv", "w", newline="") as hmdb_fingerprint_matrix, \

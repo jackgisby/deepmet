@@ -70,7 +70,7 @@ def visualise_deep_svdd(
         indices, labels, latent = np.array(indices), np.array(labels), np.array(latent)
 
         latent[:, -1] = dataset_labels[indices, 2]
-        np.savetxt(xp_path + '/ + ' + prefix + '_latent.csv', latent, fmt="%s", delimiter=",")
+        np.savetxt(xp_path + '/' + prefix + '_latent.csv', latent, fmt="%s", delimiter=",")
 
 
 if __name__ == '__main__':

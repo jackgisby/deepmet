@@ -107,11 +107,11 @@ def run_deep_svdd(
     n_jobs_dataloader=0,
     ae_loss_function="bce",
     in_features=2749,
-    n_tuning_rounds=100,
+    n_tuning_rounds=50,
     rep_dim=200,
     n_epochs=20,
     weight_decay=1e-5,
-    tuneable_params={"lr": (3, 5)}
+    tuneable_params={"lr": (3.5, 4.5)}
 ):
     # Get configuration
     cfg = Config(locals().copy())
