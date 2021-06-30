@@ -128,16 +128,23 @@ if __name__ == "__main__":
 
     fingerprint_methods = get_fingerprint_methods()
 
-    filenames = ["chembl_28_chemreps.txt"]  # , "10_prop.csv", "metabolites-2021-06-20"
-    prefixes = ["CHEMBL"],  # , "ZINC", "HMDB"
-    smiles_cols = [1],  # , 10, 2
-    first_rows = ["chembl_id"]  # , "ZINC_ID", "HMDB_ID"
+    file_info = {
+        "CHEMBL": {"filename": "chembl_28_chemreps.txt", "smiles_col": 1,  "first_row": "chembl_id", "separator": "\t"},
+        "ZINC": {"filename": "10_prop.csv",              "smiles_col": 10, "first_row": "ZINC_ID",   "separator": "\t"},
+        "HMDB": {"filename": "metabolites-2021-06-20",   "smiles_col": 2,  "first_row": "HMDB_ID",   "separator": "\t"}
+    }
 
-    for filename, prefix, smiles_col, first_row in zip(filenames, prefixes, smiles_cols, first_rows):
+    for prefix in file_info.keys():
 
         if prefix in ("HMDB",):
             subset_n = None
         else:
             subset_n = 20000
 
-        get_fingerprints_from_smiles(filename, prefix, smiles_col, first_row, subset_n)
+        get_fingerprints_from_smiles(
+            file_info[prefix]["filename"],
+            prefix,
+            file_info[prefix]["smiles_col"],
+            file_info[prefix]["first_row"],
+            subset_n
+        )
