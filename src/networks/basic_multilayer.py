@@ -15,7 +15,7 @@ class BasicMultilayer(BaseNet):
         # encoder
         self.deep1 = nn.Linear(self.in_features, 500)
         self.deep2 = nn.Linear(500, 250)
-        self.fc_output = nn.Linear(250, self.rep_dim)
+        self.fc_output = nn.Linear(250, self.rep_dim, bias=False)
 
         # decoder
         self.deep4 = nn.Linear(self.rep_dim, 250)

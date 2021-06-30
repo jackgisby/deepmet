@@ -88,12 +88,42 @@ if __name__ == "__main__":
 
     RDLogger.DisableLog('rdApp.*')
 
-    if os.path.exists("../data/mol_key_test"):
-        shutil.rmtree("../data/mol_key_test")
-
-    os.mkdir("../data/mol_key_test")
+    # if os.path.exists("../data/mol_key_test"):
+    #     shutil.rmtree("../data/mol_key_test")
+    #
+    # os.mkdir("../data/mol_key_test")
 
     fingerprint_methods = get_fingerprint_methods()
+
+    with open("../../../../Data/other_databases/chembl_28_chemreps.txt", "r", encoding="utf8") as chembls, \
+         open("../data/mol_key_test/chembl_fingerprints.csv", "w", newline="") as chembl_fingerprint_matrix, \
+         open("../data/mol_key_test/chembl_meta.csv", "w", newline="") as chembl_meta:
+
+        chembl_csv = csv.reader(chembls, delimiter="\t")
+        chembl_matrix_csv = csv.writer(chembl_fingerprint_matrix)
+        chembl_meta_csv = csv.writer(chembl_meta)
+
+        chembl_subset = set()
+
+        # 0: chembl_ID, 1: smiles
+        for row in chembl_csv:
+
+            if row[0] == "chembl_id":
+                continue
+
+            smiles = smiles_qc(row[1])
+
+            if smiles is not None and smiles != "":
+                chembl_subset.add(smiles)
+
+        chembl_subset = sample(chembl_subset, 20000)
+
+        for i, smiles in enumerate(chembl_subset):
+
+            mol = Chem.MolFromSmiles(smiles)
+
+            chembl_meta_csv.writerow(["chembl_" + str(i), smiles])
+            chembl_matrix_csv.writerow(smiles_to_matrix(smiles, mol, fingerprint_methods))
 
     # with open("../../../../Data/zinc12/10_prop.csv", "r", encoding="utf8") as zincs, \
     #      open("../data/mol_key_test/zinc_fingerprints.csv", "w", newline="") as zinc_fingerprint_matrix, \
@@ -125,27 +155,27 @@ if __name__ == "__main__":
     #         zinc_meta_csv.writerow(["ZINC_" + str(i), smiles])
     #         zinc_matrix_csv.writerow(smiles_to_matrix(smiles, mol, fingerprint_methods))
 
-    with open("../../../../Data/hmdb/hmdb_metabolites/metabolites-2021-06-20", "r", encoding="utf8") as hmdbs, \
-         open("../data/mol_key_test/hmdb_fingerprints.csv", "w", newline="") as hmdb_fingerprint_matrix, \
-         open("../data/mol_key_test/hmdb_meta.csv", "w", newline="") as hmdb_meta:
-
-        hmdb_csv = csv.reader(hmdbs)
-        hmdb_matrix_csv = csv.writer(hmdb_fingerprint_matrix)
-        hmdb_meta_csv = csv.writer(hmdb_meta)
-
-        # 0: HMDB_ID, 2: smiles, 6: mono mass
-        for row in hmdb_csv:
-
-            if row[0] == "HMDB_ID":
-                continue
-
-            smiles = smiles_qc(row[2])
-
-            if smiles is None:
-                continue
-
-            mol = Chem.MolFromSmiles(smiles)
-            assert mol is not None
-
-            hmdb_meta_csv.writerow([row[0], smiles])
-            hmdb_matrix_csv.writerow(smiles_to_matrix(smiles, mol, fingerprint_methods))
+    # with open("../../../../Data/hmdb/hmdb_metabolites/metabolites-2021-06-20", "r", encoding="utf8") as hmdbs, \
+    #      open("../data/mol_key_test/hmdb_fingerprints.csv", "w", newline="") as hmdb_fingerprint_matrix, \
+    #      open("../data/mol_key_test/hmdb_meta.csv", "w", newline="") as hmdb_meta:
+    #
+    #     hmdb_csv = csv.reader(hmdbs)
+    #     hmdb_matrix_csv = csv.writer(hmdb_fingerprint_matrix)
+    #     hmdb_meta_csv = csv.writer(hmdb_meta)
+    #
+    #     # 0: HMDB_ID, 2: smiles, 6: mono mass
+    #     for row in hmdb_csv:
+    #
+    #         if row[0] == "HMDB_ID":
+    #             continue
+    #
+    #         smiles = smiles_qc(row[2])
+    #
+    #         if smiles is None:
+    #             continue
+    #
+    #         mol = Chem.MolFromSmiles(smiles)
+    #         assert mol is not None
+    #
+    #         hmdb_meta_csv.writerow([row[0], smiles])
+    #         hmdb_matrix_csv.writerow(smiles_to_matrix(smiles, mol, fingerprint_methods))

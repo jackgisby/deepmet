@@ -176,7 +176,6 @@ class DeepSVDDTrainer(BaseTrainer):
         logger.info('Finished testing.')
 
     def visualise(self, dataset: BaseADDataset, net: BaseNet):
-        logger = logging.getLogger()
 
         # Set device for network
         net = net.to(self.device)
@@ -201,11 +200,7 @@ class DeepSVDDTrainer(BaseTrainer):
 
                 latent_dims += list(zip(idx.cpu().data.numpy().tolist(),
                                         labels.cpu().data.numpy().tolist(),
-                                        outputs.cpu().data.numpy().tolist(),
-                                        outputs_min_c.cpu().data.numpy().tolist(),
-                                        outputs_min_c_sq.cpu().data.numpy().tolist(),
-                                        scores_unsq.cpu().data.numpy().tolist(),
-                                        scores.cpu().data.numpy().tolist()))
+                                        outputs_min_c_sq.cpu().data.numpy().tolist()))
 
         self.latent_visualisation = latent_dims
 

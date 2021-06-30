@@ -3,38 +3,37 @@ import pandas as pd
 
 if __name__ == '__main__':
 
-    hmdb_fingerprints = pd.read_csv("../data/mol_key_test/hmdb_fingerprints.csv", dtype=int, header=None, index_col=False)
-    zinc_fingerprints = pd.read_csv("../data/mol_key_test/zinc_fingerprints.csv", dtype=int, header=None, index_col=False)
+    fingerprint_names = ["hmdb", "zinc", "chembl"]
 
-    hmdb_num_rows, hmdb_num_cols = hmdb_fingerprints.shape
-    print(hmdb_num_rows)
-    hmdb_initial_index = hmdb_fingerprints.index
+    fingerprints = [pd.read_csv("../data/mol_key_test/hmdb_fingerprints.csv", dtype=int, header=None, index_col=False),
+                    pd.read_csv("../data/mol_key_test/zinc_fingerprints.csv", dtype=int, header=None, index_col=False),
+                    pd.read_csv("../data/mol_key_test/chembl_fingerprints.csv", dtype=int, header=None, index_col=False)]
 
-    hmdb_fingerprints.columns = range(0, hmdb_num_cols)
-    print(hmdb_fingerprints)
+    num_rows = [None, None, None]
+    num_cols = [None, None, None]
+    initial_index = [None, None, None]
 
-    zinc_num_rows, zinc_num_cols = zinc_fingerprints.shape
-    print(zinc_num_rows)
-    zinc_initial_index = zinc_fingerprints.index
+    for i in range(len(fingerprints)):
+        num_rows[i], num_cols[i] = fingerprints[i].shape
+        print(num_rows[i])
+        initial_index[i] = fingerprints[i].index
 
-    assert zinc_num_cols == hmdb_num_cols
+        fingerprints[i].columns = range(0, num_cols[i])
+        print(fingerprints[i])
 
-    zinc_fingerprints.columns = range(0, hmdb_num_cols)
-    print(zinc_fingerprints)
-
-    assert all(hmdb_fingerprints.columns == zinc_fingerprints.columns)
+        assert all(fingerprints[i].columns == fingerprints[0].columns)
 
     # remove unbalanced features
     unbalanced = 0.1
     cols_to_remove = []
-    for i, cname in enumerate(hmdb_fingerprints):
+    for i, cname in enumerate(fingerprints[0]):
 
-        n_unique = hmdb_fingerprints[cname].nunique()
+        n_unique = fingerprints[0][cname].nunique()
         if n_unique == 1:
             cols_to_remove.append(i)
 
         elif n_unique == 2:
-            balance_table = hmdb_fingerprints[cname].value_counts()
+            balance_table = fingerprints[0][cname].value_counts()
             balance = balance_table[0] / (balance_table[1] + balance_table[0])
 
             if balance > (1 - unbalanced) or balance < unbalanced:
@@ -42,22 +41,15 @@ if __name__ == '__main__':
         else:
             assert False
 
-    hmdb_fingerprints.drop(cols_to_remove, axis=1, inplace=True)
-    print(hmdb_fingerprints)
-    zinc_fingerprints.drop(cols_to_remove, axis=1, inplace=True)
-    print(zinc_fingerprints)
+    for i in range(len(fingerprints)):
+        fingerprints[i].drop(cols_to_remove, axis=1, inplace=True)
+        print(fingerprints[i])
 
-    hmdb_num_rows_processed, hmdb_num_cols_processed = hmdb_fingerprints.shape
-    print(hmdb_num_cols_processed)
-    assert hmdb_num_rows_processed == hmdb_num_rows
-    assert all(hmdb_fingerprints.index == hmdb_initial_index)
+        num_rows_processed, num_cols_processed = fingerprints[i].shape
+        print(num_cols_processed)
+        assert num_rows_processed == num_rows[i]
+        assert all(fingerprints[i].index == initial_index[i])
 
-    zinc_num_rows_processed, zinc_num_cols_processed = zinc_fingerprints.shape
-    print(zinc_num_cols_processed)
-    assert zinc_num_rows_processed == zinc_num_rows
-    assert all(zinc_fingerprints.index == zinc_initial_index)
+        assert all(fingerprints[i].columns == fingerprints[0].columns)
 
-    assert all(hmdb_fingerprints.columns == zinc_fingerprints.columns)
-
-    hmdb_fingerprints.to_csv("../data/mol_key_test/hmdb_fingerprints_processed.csv", header=False, index=False)
-    zinc_fingerprints.to_csv("../data/mol_key_test/zinc_fingerprints_processed.csv", header=False, index=False)
+        fingerprints[i].to_csv("../data/mol_key_test/" + fingerprint_names[i] + "_fingerprints_processed.csv", header=False, index=False)
