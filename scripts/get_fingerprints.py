@@ -106,7 +106,8 @@ def get_fingerprints_from_smiles(filename, prefix, smiles_col, first_row, subset
             if smiles is not None and smiles != "":
                 structure_subset.add(smiles)
 
-        structure_subset = sample(structure_subset, subset_n)
+        if subset_n is not None and subset_n != 0:
+            structure_subset = sample(structure_subset, subset_n)
 
         for i, smiles in enumerate(structure_subset):
 
@@ -127,35 +128,16 @@ if __name__ == "__main__":
 
     fingerprint_methods = get_fingerprint_methods()
 
-    filenames = ["chembl_28_chemreps.txt"]  # , "10_prop.csv"
-    prefixes = ["CHEMBL"],  # , "ZINC"
-    smiles_cols = [1],  # , 10
-    first_rows = ["chembl_id"]  # , "ZINC_ID"
+    filenames = ["chembl_28_chemreps.txt"]  # , "10_prop.csv", "metabolites-2021-06-20"
+    prefixes = ["CHEMBL"],  # , "ZINC", "HMDB"
+    smiles_cols = [1],  # , 10, 2
+    first_rows = ["chembl_id"]  # , "ZINC_ID", "HMDB_ID"
 
     for filename, prefix, smiles_col, first_row in zip(filenames, prefixes, smiles_cols, first_rows):
-        get_fingerprints_from_smiles(filename, prefix, smiles_col, first_row)
 
-    # with open("../../../../Data/hmdb/hmdb_metabolites/metabolites-2021-06-20", "r", encoding="utf8") as hmdbs, \
-    #      open("../data/mol_key_test/hmdb_fingerprints.csv", "w", newline="") as hmdb_fingerprint_matrix, \
-    #      open("../data/mol_key_test/hmdb_meta.csv", "w", newline="") as hmdb_meta:
-    #
-    #     hmdb_csv = csv.reader(hmdbs)
-    #     hmdb_matrix_csv = csv.writer(hmdb_fingerprint_matrix)
-    #     hmdb_meta_csv = csv.writer(hmdb_meta)
-    #
-    #     # 0: HMDB_ID, 2: smiles, 6: mono mass
-    #     for row in hmdb_csv:
-    #
-    #         if row[0] == "HMDB_ID":
-    #             continue
-    #
-    #         smiles = smiles_qc(row[2])
-    #
-    #         if smiles is None:
-    #             continue
-    #
-    #         mol = Chem.MolFromSmiles(smiles)
-    #         assert mol is not None
-    #
-    #         hmdb_meta_csv.writerow([row[0], smiles])
-    #         hmdb_matrix_csv.writerow(smiles_to_matrix(smiles, mol, fingerprint_methods))
+        if prefix in ("HMDB",):
+            subset_n = None
+        else:
+            subset_n = 20000
+
+        get_fingerprints_from_smiles(filename, prefix, smiles_col, first_row, subset_n)
