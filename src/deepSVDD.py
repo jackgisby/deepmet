@@ -53,7 +53,9 @@ class DeepSVDD(object):
             'test_auc': None,
             'test_time': None,
             'test_scores': None,
-            'test_loss': None
+            'test_loss': None,
+            'R': self.R,
+            'c': self.c
         }
 
         self.visualisation = None
@@ -78,6 +80,8 @@ class DeepSVDD(object):
         self.R = float(self.trainer.R.cpu().data.numpy())  # Get float
         self.c = self.trainer.c.cpu().data.numpy().tolist()  # Get list
         self.results['train_time'] = self.trainer.train_time
+        self.results['R'] = self.R
+        self.results['c'] = self.c
 
     def test(self, dataset: BaseADDataset, device: str = 'cuda', n_jobs_dataloader: int = 0):
         """ Tests the Deep SVDD model on the test data. """

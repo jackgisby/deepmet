@@ -56,7 +56,7 @@ def main(dataset_name, net_name, xp_path, data_path, load_config, load_model, ob
     :arg DATA_PATH: Root path of data.
     """
 
-    raise NotImplementedError  # TODO: Convert scripts/run_model.py into command line application here
+    raise NotImplementedError  # TODO: Convert current scripts into command line application here
 
 
 if __name__ == '__main__':
