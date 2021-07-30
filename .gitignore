@@ -107,5 +107,5 @@ Temporary Items
 .apdisk
 
 # Project-specific output folders
-data/
+data/mol_key_test
 log/
