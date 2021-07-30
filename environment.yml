@@ -1,0 +1,31 @@
+name:
+  DeepMet
+channels:
+  - pytorch
+  - conda-forge
+dependencies:
+  - requests
+  - numpy
+  - scipy
+  - scikit-learn
+  - certifi
+  - chardet
+  - Click
+  - cloudpickle
+  - cycler
+  - idna
+  - kiwisolver
+  - matplotlib
+  - pandas
+  - Pillow
+  - pyparsing
+  - python-dateutil
+  - pytz
+  - six
+  - pytorch
+  - torchvision
+  - torchaudio
+  - tqdm
+  - ujson
+  - urllib3
+  - rdkit
