@@ -75,10 +75,13 @@ class DeepSVDD(object):
         self.trainer = DeepSVDDTrainer(self.objective, self.R, self.c, self.nu, optimizer_name, lr=lr,
                                        n_epochs=n_epochs, lr_milestones=lr_milestones, batch_size=batch_size,
                                        weight_decay=weight_decay, device=device, n_jobs_dataloader=n_jobs_dataloader)
+
         # Get the model
         self.net = self.trainer.train(dataset, self.net)
         self.R = float(self.trainer.R.cpu().data.numpy())  # Get float
         self.c = self.trainer.c.cpu().data.numpy().tolist()  # Get list
+
+        # Save results
         self.results['train_time'] = self.trainer.train_time
         self.results['R'] = self.R
         self.results['c'] = self.c
@@ -90,6 +93,7 @@ class DeepSVDD(object):
             self.trainer = DeepSVDDTrainer(self.objective, self.R, self.c, self.nu,
                                            device=device, n_jobs_dataloader=n_jobs_dataloader)
 
+        # Test the model
         self.trainer.test(dataset, self.net)
 
         # Get results
@@ -99,13 +103,13 @@ class DeepSVDD(object):
         self.results['test_loss'] = self.trainer.test_loss
 
     def visualise_network(self, dataset: BaseADDataset, device: str = 'cuda', n_jobs_dataloader: int = 0):
+        """Gets the values of the model's latent layer for visualisation."""
 
         if self.trainer is None:
             self.trainer = DeepSVDDTrainer(self.objective, self.R, self.c, self.nu,
                                            device=device, n_jobs_dataloader=n_jobs_dataloader)
 
         self.trainer.visualise(dataset, self.net)
-
         self.visualisation = self.trainer.latent_visualisation
 
     def pretrain(self, dataset: BaseADDataset, optimizer_name: str = 'adam', lr: float = 0.001, n_epochs: int = 100,

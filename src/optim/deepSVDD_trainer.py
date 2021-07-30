@@ -176,6 +176,7 @@ class DeepSVDDTrainer(BaseTrainer):
         logger.info('Finished testing.')
 
     def visualise(self, dataset: BaseADDataset, net: BaseNet):
+        """Get the latent layer of the model for visualisation."""
 
         # Set device for network
         net = net.to(self.device)
@@ -195,8 +196,6 @@ class DeepSVDDTrainer(BaseTrainer):
 
                 outputs_min_c = outputs - self.c
                 outputs_min_c_sq = outputs_min_c ** 2
-                scores_unsq = outputs_min_c_sq - self.R
-                scores = scores_unsq ** 2
 
                 latent_dims += list(zip(idx.cpu().data.numpy().tolist(),
                                         labels.cpu().data.numpy().tolist(),
