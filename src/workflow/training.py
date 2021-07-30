@@ -1,6 +1,3 @@
-import os
-import sys
-import csv
 import torch
 import logging
 import random
@@ -9,13 +6,16 @@ import numpy as np
 from utils.config import Config
 from deepSVDD import DeepSVDD
 from datasets.main import load_dataset
+from utils.feature_processing import get_fingerprints_from_meta, select_features
 
 
 def train_likeness_scorer(
-        dataset_path,
+        normal_meta_path,
         results_path,
         load_config,
-        non_normal_dataset_path,
+        non_normal_meta_path,
+        normal_fingerprints_path,
+        non_normal_fingerprints_path,
         net_name,
         objective,
         nu,
@@ -34,13 +34,25 @@ def train_likeness_scorer(
         ae_lr_milestone,
         ae_batch_size,
         ae_weight_decay,
-        n_jobs_dataloader
+        n_jobs_dataloader,
+        validation_split,
+        test_split
 ):
     """
     Train a DeepSVDD model based only on the 'normal' structures specified. 'non-normal' structures can be supplied
     to form a test set, however these are not used to train the model or optimise its parameters. The 'normal' and
     'non-normal' sets can be any classes of structures.
     """
+
+    # If required, computes the fingerprints from the input smiles
+    if normal_fingerprints_path is None:
+        normal_fingerprints_path = get_fingerprints_from_meta(normal_fingerprints_path, results_path, "normal")
+
+    if non_normal_fingerprints_path is None and non_normal_meta_path is not None:
+        non_normal_fingerprints_path = get_fingerprints_from_meta(non_normal_fingerprints_path, results_path, "non_normal")
+
+    # Filter features if necessary
+    normal_fingerprints_path, non_normal_fingerprints_path = select_features(normal_fingerprints_path, non_normal_fingerprints_path)
 
     # Get configuration
     cfg = Config(locals().copy())
@@ -58,9 +70,15 @@ def train_likeness_scorer(
 
     # Print arguments
     logger.info('Log file is %s.' % log_file)
-    logger.info('Data path is %s.' % dataset_path)
     logger.info('Export path is %s.' % results_path)
     logger.info('Network: %s' % net_name)
+    
+    logger.info('The filtered normal fingerprint matrix path is %s.' % normal_fingerprints_path)
+    logger.info('The filtered normal meta is %s.' % normal_meta_path)
+    
+    if non_normal_meta_path is not None:
+        logger.info('The filtered non normal fingerprint matrix path is %s.' % non_normal_fingerprints_path)
+        logger.info('The filtered non normal meta is %s.' % non_normal_meta_path)
 
     # Print configuration
     logger.info('Deep SVDD objective: %s' % cfg.settings['objective'])
@@ -82,7 +100,15 @@ def train_likeness_scorer(
     logger.info('Number of dataloader workers: %d' % n_jobs_dataloader)
 
     # Load data
-    dataset, dataset_labels, validation_dataset = load_dataset(dataset_path, non_normal_dataset_path, seed)
+    dataset, dataset_labels, validation_dataset = load_dataset(
+        normal_dataset_path=normal_fingerprints_path,
+        normal_meta_path=dataset_meta_path,
+        non_normal_dataset_path=non_normal_fingerprints_path,
+        non_normal_dataset_meta_path=non_normal_dataset_meta_path,
+        seed=seed, 
+        validation_split=validation_split, 
+        test_split=validation_split
+    )
 
     # Train the model (and estimate loss on the 'normal' validation set)
     deep_SVDD = train_single_model(cfg, validation_dataset)
