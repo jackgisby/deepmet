@@ -1,0 +1,158 @@
+import os
+import sys
+import csv
+import torch
+import logging
+import random
+import numpy as np
+
+from utils.config import Config
+from deepSVDD import DeepSVDD
+from datasets.main import load_dataset
+
+
+def train_likeness_scorer(
+        dataset_path,
+        results_path,
+        load_config,
+        non_normal_dataset_path,
+        net_name,
+        objective,
+        nu,
+        device,
+        seed,
+        optimizer_name,
+        lr,
+        n_epochs,
+        lr_milestone,
+        batch_size,
+        weight_decay,
+        pretrain,
+        ae_optimizer_name,
+        ae_lr,
+        ae_n_epochs,
+        ae_lr_milestone,
+        ae_batch_size,
+        ae_weight_decay,
+        n_jobs_dataloader
+):
+    """
+    Train a DeepSVDD model based only on the 'normal' structures specified. 'non-normal' structures can be supplied
+    to form a test set, however these are not used to train the model or optimise its parameters. The 'normal' and
+    'non-normal' sets can be any classes of structures.
+    """
+
+    # Get configuration
+    cfg = Config(locals().copy())
+
+    # Set up logging
+    logging.basicConfig(level=logging.INFO)
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    log_file = results_path + '/log.txt'
+    file_handler = logging.FileHandler(log_file)
+    file_handler.setLevel(logging.INFO)
+    file_handler.setFormatter(formatter)
+    logger.addHandler(file_handler)
+
+    # Print arguments
+    logger.info('Log file is %s.' % log_file)
+    logger.info('Data path is %s.' % dataset_path)
+    logger.info('Export path is %s.' % results_path)
+    logger.info('Network: %s' % net_name)
+
+    # Print configuration
+    logger.info('Deep SVDD objective: %s' % cfg.settings['objective'])
+    logger.info('Nu-paramerter: %.2f' % cfg.settings['nu'])
+
+    # Set seed
+    if cfg.settings['seed'] != -1:
+        random.seed(cfg.settings['seed'])
+        np.random.seed(cfg.settings['seed'])
+        torch.manual_seed(cfg.settings['seed'])
+        logger.info('Set seed to %d.' % cfg.settings['seed'])
+
+    # Default device to 'cpu' if cuda is not available
+    if not torch.cuda.is_available():
+        print("cuda not available: defaulting to cpu")
+        device = 'cpu'
+
+    logger.info('Computation device: %s' % device)
+    logger.info('Number of dataloader workers: %d' % n_jobs_dataloader)
+
+    # Load data
+    dataset, dataset_labels, validation_dataset = load_dataset(dataset_path, non_normal_dataset_path, seed)
+
+    # Train the model (and estimate loss on the 'normal' validation set)
+    deep_SVDD = train_single_model(cfg, validation_dataset)
+
+    # Test using separate test dataset (that ideally includes a set of 'non-normal' compounds)
+    deep_SVDD.test(dataset, device=device, n_jobs_dataloader=n_jobs_dataloader)
+
+    logger.info('The AUC on the test dataset is: %s' % str(deep_SVDD.results["test_auc"]))
+
+    # Save results, model, and configuration
+    deep_SVDD.save_results(export_json=results_path + '/results.json')
+    deep_SVDD.save_model(export_model=results_path + '/model.tar', save_ae=pretrain)
+    cfg.save_config(export_json=results_path + '/config.json')
+
+    return deep_SVDD
+
+
+def train_single_model(cfg, dataset, ae_loss_function=torch.nn.BCELoss()):
+
+    logger = logging.getLogger()
+
+    # Initialize DeepSVDD model and set neural network \phi
+    deep_SVDD = DeepSVDD(cfg.settings["objective"], cfg.settings["nu"], cfg.settings["rep_dim"], cfg.settings["in_features"])
+    deep_SVDD.set_network(cfg.settings["net_name"])
+
+    logger.info("Pretraining: %s" % cfg.settings["pretrain"])
+    if cfg.settings["pretrain"]:
+
+        # Log pretraining details
+        logger.info("Pretraining optimizer: %s" % cfg.settings["optimizer_name"])
+        logger.info("Pretraining learning rate: %g" % cfg.settings["ae_lr"])
+        logger.info("Pretraining epochs: %d" % cfg.settings["n_epochs"])
+        logger.info("Pretraining batch size: %d" % cfg.settings["batch_size"])
+        logger.info("Pretraining weight decay: %g" % cfg.settings["weight_decay"])
+
+        # Pretrain model on dataset (via autoencoder)
+        deep_SVDD.pretrain(
+            dataset,
+            optimizer_name=cfg.settings["optimizer_name"],
+            lr=cfg.settings["ae_lr"],
+            n_epochs=cfg.settings["n_epochs"],
+            lr_milestones=cfg.settings["lr_milestones"],
+            batch_size=cfg.settings["batch_size"],
+            weight_decay=cfg.settings["weight_decay"],
+            device=cfg.settings["device"],
+            n_jobs_dataloader=cfg.settings["n_jobs_dataloader"],
+            loss_function=ae_loss_function
+        )
+
+    # Log training details
+    logger.info("Training optimizer: %s" % cfg.settings["optimizer_name"])
+    logger.info("Training learning rate: %g" % cfg.settings["lr"])
+    logger.info("Training epochs: %d" % cfg.settings["n_epochs"])
+    logger.info("Training batch size: %d" % cfg.settings["batch_size"])
+    logger.info("Training weight decay: %g" % cfg.settings["weight_decay"])
+
+    # Train model on dataset
+    deep_SVDD.train(
+        dataset,
+        optimizer_name=cfg.settings["optimizer_name"],
+        lr=cfg.settings["lr"],
+        n_epochs=cfg.settings["n_epochs"],
+        lr_milestones=cfg.settings["lr_milestones"],
+        batch_size=cfg.settings["batch_size"],
+        weight_decay=cfg.settings["weight_decay"],
+        device=cfg.settings["device"],
+        n_jobs_dataloader=cfg.settings["n_jobs_dataloader"]
+    )
+
+    # Test model
+    deep_SVDD.test(dataset, device=cfg.settings["device"], n_jobs_dataloader=cfg.settings["n_jobs_dataloader"])
+
+    return deep_SVDD
