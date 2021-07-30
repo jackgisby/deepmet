@@ -4,10 +4,12 @@ from workflow.scoring import get_likeness_scores
 
 
 @click.command()
-@click.argument("dataset_path", type=click.Path(exists=True), help="If using a pre-existing model, the examples to be classified, else this will be used as the 'normal' structure set.")
+@click.argument("normal_meta_path", type=click.Path(exists=True), help="If using a pre-existing model, the examples to be classified, else this will be used as the 'normal' structure set.")
 @click.argument("results_path", type=click.Path(exists=True), help="The path at which to save results.")
 @click.option("--train_model", type=bool, default=False, help="Whether to train a new model or process smiles using an existing model.")
-@click.argument("non_normal_dataset_path", type=click.Path(exists=True), default=None, help="If training a new model, this will form the 'non-self' class that the final model will be tested against.")
+@click.argument("non_normal_path", type=click.Path(exists=True), default=None, help="If training a new model, this will form the 'non-self' class that the final model will be tested against.")
+@click.argument("normal_fingerprints_path", type=click.Path(exists=True), default=None, help="Matrix of fingerprints corresponding to the rows of the dataset_path.")
+@click.argument("non_normal_fingerprints_path", type=click.Path(exists=True), default=None, help="Matrix of fingerprints corresponding to the rows of the non_normal_dataset_path.")
 @click.option("--load_config", type=click.Path(exists=True), default=None, help="Config JSON-file path (default: None).")
 @click.option("--load_model", type=click.Path(exists=True), default=None, help="Model file path (default: None).")
 @click.option("--net_name", type=click.Choice(["cocrystal_transformer", "basic_multilayer"]), help="The model architecture to be used.")
@@ -30,9 +32,12 @@ from workflow.scoring import get_likeness_scores
 @click.option("--ae_weight_decay", type=float, default=1e-5, help="Weight decay (L2 penalty) hyperparameter for autoencoder objective.")
 @click.option("--n_jobs_dataloader", type=int, default=0, help="Number of workers for data loading. 0 means that the data will be loaded in the main process.")
 @click.option("--isomeric_smiles", type=bool, default=True, help="If True, the smiles of the input dataset(s) will be converted to isomeric smiles using RDKit, else isomeric information will be discarded.")
-def main(dataset_path, results_path, train_model, non_normal_dataset_path, load_config, load_model, net_name,
-         objective, nu, device, seed, optimizer_name, lr, n_epochs, lr_milestone, batch_size, weight_decay, pretrain,
-         ae_optimizer_name, ae_lr, ae_n_epochs, ae_lr_milestone, ae_batch_size, ae_weight_decay, n_jobs_dataloader):
+@click.option("--validation_split", type=int, default=0, help="The percentile at which to split the training and validation set.")
+@click.option("--test_split", type=bool, default=True, help="The percentile at which to split the validation and the test set.")
+def main(normal_meta_path, results_path, train_model, non_normal_path, normal_fingerprints_path, non_normal_fingerprints_path,
+         load_config, load_model, net_name, objective, nu, device, seed, optimizer_name, lr, n_epochs, lr_milestone,
+         batch_size, weight_decay, pretrain, ae_optimizer_name, ae_lr, ae_n_epochs, ae_lr_milestone, ae_batch_size,
+         ae_weight_decay, n_jobs_dataloader, validation_split, test_split):
     """
     Use or train a DeepSVDD model for the likeness scoring of compounds. In the case that the user is training a new
     model and metabolites are used as the 'self' dataset, as was done for the default pre-trained model, then resulting
@@ -52,14 +57,17 @@ def main(dataset_path, results_path, train_model, non_normal_dataset_path, load_
     """
 
     if train_model:
-        train_likeness_scorer(dataset_path=dataset_path, results_path=results_path,
-                              load_config=load_config, non_normal_dataset_path=non_normal_dataset_path,
+        train_likeness_scorer(normal_meta_path=normal_meta_path, results_path=results_path,
+                              load_config=load_config, non_normal_meta_path=non_normal_path,
+                              normal_fingerprints_path=normal_fingerprints_path,
+                              non_normal_fingerprints_path=non_normal_fingerprints_path,
                               net_name=net_name, objective=objective, nu=nu, device=device, seed=seed,
                               optimizer_name=optimizer_name, lr=lr, n_epochs=n_epochs, lr_milestone=lr_milestone,
                               batch_size=batch_size, weight_decay=weight_decay, pretrain=pretrain,
                               ae_optimizer_name=ae_optimizer_name, ae_lr=ae_lr, ae_n_epochs=ae_n_epochs,
                               ae_lr_milestone=ae_lr_milestone, ae_batch_size=ae_batch_size,
-                              ae_weight_decay=ae_weight_decay, n_jobs_dataloader=n_jobs_dataloader)
+                              ae_weight_decay=ae_weight_decay, n_jobs_dataloader=n_jobs_dataloader,
+                              validation_split=validation_split, test_split=test_split)
 
     else:
         get_likeness_scores(dataset_path=dataset_path, results_path=results_path, load_model=load_model)

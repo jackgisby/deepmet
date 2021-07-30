@@ -14,29 +14,29 @@ def unison_shuffled_copies(a, b):
     return a[p], b[p]
 
 
-def get_data_from_csv(dataset_path, metadata_path):
+def get_data_from_csv(dataset_path, meta_path):
 
     if not os.path.exists(dataset_path):
         raise FileNotFoundError
 
-    if not os.path.exists(metadata_path):
+    if not os.path.exists(meta_path):
         raise FileNotFoundError
 
     self_x_data = np.loadtxt(dataset_path, delimiter=",", comments=None)
-    self_labels = np.loadtxt(metadata_path, delimiter=",", dtype=str, comments=None)
+    self_labels = np.loadtxt(meta_path, delimiter=",", dtype=str, comments=None)
 
     return unison_shuffled_copies(self_x_data, self_labels)
 
 
-def load_dataset(normal_dataset_path, normal_metadata_path, non_normal_dataset_path=None,
-                 non_normal_dataset_metadata_path=None, seed=1, validation_split=0.8, test_split=0.9):
+def load_dataset(normal_dataset_path, normal_meta_path, non_normal_dataset_path=None,
+                 non_normal_dataset_meta_path=None, seed=1, validation_split=0.8, test_split=0.9):
     """Loads the dataset."""
     
     if seed != -1:
         random.seed(seed)
         np.random.seed(seed)
 
-    x_data, labels = get_data_from_csv(normal_dataset_path, normal_metadata_path)
+    x_data, labels = get_data_from_csv(normal_dataset_path, normal_meta_path)
 
     num_rows, num_cols = x_data.shape
     train_val_split_index = floor(num_rows * validation_split)
@@ -46,7 +46,7 @@ def load_dataset(normal_dataset_path, normal_metadata_path, non_normal_dataset_p
 
     if non_normal_dataset_path is not None:
 
-        other_x_data, other_labels = get_data_from_csv(non_normal_dataset_path, non_normal_dataset_metadata_path)
+        other_x_data, other_labels = get_data_from_csv(non_normal_dataset_path, non_normal_dataset_meta_path)
 
         x_data = np.concatenate([x_data, other_x_data])
         labels = np.concatenate([labels, other_labels])
