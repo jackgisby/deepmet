@@ -20,24 +20,23 @@ from workflow.scoring import get_likeness_scores
 @click.option("--optimizer_name", type=click.Choice(["adam", "amsgrad"]), default="adam", help="Name of the optimizer to use for Deep SVDD network training.")
 @click.option("--lr", type=float, default=0.0001, help="Initial learning rate for Deep SVDD network training. Default=0.001")
 @click.option("--n_epochs", type=int, default=20, help="Number of epochs to train.")
-@click.option("--lr_milestone", type=int, default=0, multiple=True, help="Lr scheduler milestones at which lr is multiplied by 0.1. Can be multiple and must be increasing.")
+@click.option("--lr_milestones", type=int, default=0, multiple=True, help="Lr scheduler milestones at which lr is multiplied by 0.1. Can be multiple and must be increasing.")
 @click.option("--batch_size", type=int, default=2000, help="Batch size for mini-batch training.")
 @click.option("--weight_decay", type=float, default=1e-5, help="Weight decay (L2 penalty) hyperparameter for Deep SVDD objective.")
 @click.option("--pretrain", type=bool, default=False, help="Pretrain neural network parameters via autoencoder.")
 @click.option("--ae_optimizer_name", type=click.Choice(["adam", "amsgrad"]), default="adam", help="Name of the optimizer to use for autoencoder pretraining.")
 @click.option("--ae_lr", type=float, default=0.0001, help="Initial learning rate for autoencoder pretraining. Default=0.001")
 @click.option("--ae_n_epochs", type=int, default=20, help="Number of epochs to train autoencoder.")
-@click.option("--ae_lr_milestone", type=int, default=0, multiple=True, help="Lr scheduler milestones at which lr is multiplied by 0.1. Can be multiple and must be increasing.")
+@click.option("--ae_lr_milestones", type=int, default=0, multiple=True, help="Lr scheduler milestones at which lr is multiplied by 0.1. Can be multiple and must be increasing.")
 @click.option("--ae_batch_size", type=int, default=2000, help="Batch size for mini-batch autoencoder training.")
 @click.option("--ae_weight_decay", type=float, default=1e-5, help="Weight decay (L2 penalty) hyperparameter for autoencoder objective.")
-@click.option("--n_jobs_dataloader", type=int, default=0, help="Number of workers for data loading. 0 means that the data will be loaded in the main process.")
 @click.option("--isomeric_smiles", type=bool, default=True, help="If True, the smiles of the input dataset(s) will be converted to isomeric smiles using RDKit, else isomeric information will be discarded.")
 @click.option("--validation_split", type=int, default=0, help="The percentile at which to split the training and validation set.")
 @click.option("--test_split", type=bool, default=True, help="The percentile at which to split the validation and the test set.")
 def main(normal_meta_path, results_path, train_model, non_normal_path, normal_fingerprints_path, non_normal_fingerprints_path,
-         load_config, load_model, net_name, objective, nu, device, seed, optimizer_name, lr, n_epochs, lr_milestone,
-         batch_size, weight_decay, pretrain, ae_optimizer_name, ae_lr, ae_n_epochs, ae_lr_milestone, ae_batch_size,
-         ae_weight_decay, n_jobs_dataloader, validation_split, test_split):
+         load_config, load_model, net_name, objective, nu, device, seed, optimizer_name, lr, n_epochs, lr_milestones,
+         batch_size, weight_decay, pretrain, ae_optimizer_name, ae_lr, ae_n_epochs, ae_lr_milestones, ae_batch_size,
+         ae_weight_decay, validation_split, test_split):
     """
     Use or train a DeepSVDD model for the likeness scoring of compounds. In the case that the user is training a new
     model and metabolites are used as the 'self' dataset, as was done for the default pre-trained model, then resulting
@@ -62,11 +61,11 @@ def main(normal_meta_path, results_path, train_model, non_normal_path, normal_fi
                               normal_fingerprints_path=normal_fingerprints_path,
                               non_normal_fingerprints_path=non_normal_fingerprints_path,
                               net_name=net_name, objective=objective, nu=nu, device=device, seed=seed,
-                              optimizer_name=optimizer_name, lr=lr, n_epochs=n_epochs, lr_milestone=lr_milestone,
+                              optimizer_name=optimizer_name, lr=lr, n_epochs=n_epochs, lr_milestones=lr_milestones,
                               batch_size=batch_size, weight_decay=weight_decay, pretrain=pretrain,
                               ae_optimizer_name=ae_optimizer_name, ae_lr=ae_lr, ae_n_epochs=ae_n_epochs,
-                              ae_lr_milestone=ae_lr_milestone, ae_batch_size=ae_batch_size,
-                              ae_weight_decay=ae_weight_decay, n_jobs_dataloader=n_jobs_dataloader,
+                              ae_lr_milestones=ae_lr_milestones, ae_batch_size=ae_batch_size,
+                              ae_weight_decay=ae_weight_decay,
                               validation_split=validation_split, test_split=test_split)
 
     else:

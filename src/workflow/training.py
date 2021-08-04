@@ -1,3 +1,4 @@
+import os
 import torch
 import logging
 import random
@@ -37,7 +38,6 @@ def train_single_model(cfg, dataset, ae_loss_function=torch.nn.BCELoss()):
             batch_size=cfg.settings["batch_size"],
             weight_decay=cfg.settings["weight_decay"],
             device=cfg.settings["device"],
-            n_jobs_dataloader=cfg.settings["n_jobs_dataloader"],
             loss_function=ae_loss_function
         )
 
@@ -57,12 +57,11 @@ def train_single_model(cfg, dataset, ae_loss_function=torch.nn.BCELoss()):
         lr_milestones=cfg.settings["lr_milestones"],
         batch_size=cfg.settings["batch_size"],
         weight_decay=cfg.settings["weight_decay"],
-        device=cfg.settings["device"],
-        n_jobs_dataloader=cfg.settings["n_jobs_dataloader"]
+        device=cfg.settings["device"]
     )
 
     # Test model
-    deep_SVDD.test(dataset, device=cfg.settings["device"], n_jobs_dataloader=cfg.settings["n_jobs_dataloader"])
+    deep_SVDD.test(dataset, device=cfg.settings["device"])
 
     return deep_SVDD
 
@@ -77,22 +76,22 @@ def train_likeness_scorer(
         net_name,
         objective,
         nu,
+        rep_dim,
         device,
         seed,
         optimizer_name,
         lr,
         n_epochs,
-        lr_milestone,
+        lr_milestones,
         batch_size,
         weight_decay,
         pretrain,
         ae_optimizer_name,
         ae_lr,
         ae_n_epochs,
-        ae_lr_milestone,
+        ae_lr_milestones,
         ae_batch_size,
         ae_weight_decay,
-        n_jobs_dataloader,
         validation_split,
         test_split
 ):
@@ -104,13 +103,26 @@ def train_likeness_scorer(
 
     # If required, computes the fingerprints from the input smiles
     if normal_fingerprints_path is None:
-        normal_fingerprints_path = get_fingerprints_from_meta(normal_fingerprints_path, results_path, "normal")
+        normal_fingerprints_path = get_fingerprints_from_meta(normal_meta_path, os.path.join(results_path, "normal_fingerprints.csv"))
 
-    if non_normal_fingerprints_path is None and non_normal_meta_path is not None:
-        non_normal_fingerprints_path = get_fingerprints_from_meta(non_normal_fingerprints_path, results_path, "non_normal")
+    normal_fingerprints_out_path = os.path.join(results_path, "normal_fingerprints_processed.csv")
+
+    if non_normal_meta_path is None:
+        non_normal_fingerprints_out_path = None
+
+    else:
+        if non_normal_fingerprints_path is None:
+            non_normal_fingerprints_path = get_fingerprints_from_meta(non_normal_meta_path, os.path.join(results_path, "non_normal_fingerprints.csv"))
+
+        non_normal_fingerprints_out_path = os.path.join(results_path, "non_normal_fingerprints_processed.csv")
 
     # Filter features if necessary
-    normal_fingerprints_path, non_normal_fingerprints_path = select_features(normal_fingerprints_path, non_normal_fingerprints_path)
+    normal_fingerprints_path, non_normal_fingerprints_path = select_features(
+        normal_fingerprints_path=normal_fingerprints_path,
+        normal_fingerprints_out_path=normal_fingerprints_out_path,
+        non_normal_fingerprints_paths=non_normal_fingerprints_path,
+        non_normal_fingerprints_out_paths=non_normal_fingerprints_out_path
+    )
 
     # Get configuration
     cfg = Config(locals().copy())
@@ -157,7 +169,6 @@ def train_likeness_scorer(
         device = 'cpu'
 
     logger.info('Computation device: %s' % device)
-    logger.info('Number of dataloader workers: %d' % n_jobs_dataloader)
 
     # Load data
     dataset, dataset_labels, validation_dataset = load_dataset(
@@ -167,14 +178,17 @@ def train_likeness_scorer(
         non_normal_dataset_meta_path=non_normal_meta_path,
         seed=seed, 
         validation_split=validation_split, 
-        test_split=validation_split
+        test_split=test_split
     )
+
+    cfg.settings["in_features"] = dataset.train_set.dataset.data.shape[1]
+    logger.info('Number of input features: %d' % cfg.settings["in_features"])
 
     # Train the model (and estimate loss on the 'normal' validation set)
     deep_SVDD = train_single_model(cfg, validation_dataset)
 
     # Test using separate test dataset (that ideally includes a set of 'non-normal' compounds)
-    deep_SVDD.test(dataset, device=device, n_jobs_dataloader=n_jobs_dataloader)
+    deep_SVDD.test(dataset, device=device)
 
     logger.info('The AUC on the test dataset is: %s' % str(deep_SVDD.results["test_auc"]))
 
