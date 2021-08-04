@@ -53,9 +53,7 @@ class DeepSVDD(object):
             'test_auc': None,
             'test_time': None,
             'test_scores': None,
-            'test_loss': None,
-            'R': self.R,
-            'c': self.c
+            'test_loss': None
         }
 
         self.visualisation = None

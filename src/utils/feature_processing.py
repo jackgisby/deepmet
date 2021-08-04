@@ -1,5 +1,6 @@
+import csv
 import pandas as pd
-from rdkit import Chem
+from rdkit import Chem, RDLogger
 from rdkit.Chem import MACCSkeys, AllChem
 
 from .cdk import cdk_fingerprint
@@ -49,6 +50,29 @@ def get_fingerprint_methods():
         "estate": "estate",
         "maccs": MACCSkeys.GenMACCSKeys
     }
+
+
+def get_fingerprints_from_meta(meta_path, results_path, name):
+
+    fingerprint_matrix_path = results_path + "/" + name + "_fingerprints.csv"
+    fingerprint_methods = get_fingerprint_methods()
+
+    RDLogger.DisableLog('rdApp.*')
+
+    with open(meta_path, "r", encoding="utf8") as meta_file, \
+         open("../data/mol_key_test/" + name + "_fingerprints.csv", "w", newline="") as structure_fingerprint_matrix:
+
+        # 0 - ID, 1 - smiles
+        meta_csv = csv.reader(meta_file, delimiter=",")  # Input smiles
+        structure_matrix_csv = csv.writer(structure_fingerprint_matrix)  # Output matrix
+
+        for meta_row in meta_csv:
+
+            mol = Chem.MolFromSmiles(meta_row[1])
+            structure_matrix_csv.writerow(smiles_to_matrix(meta_row[1], mol, fingerprint_methods))
+
+    return fingerprint_matrix_path
+
 
 def select_features(normal_fingerprints_path, non_normal_fingerprints_path, unbalanced=0.1):
 
