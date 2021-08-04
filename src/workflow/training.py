@@ -9,6 +9,64 @@ from datasets.main import load_dataset
 from utils.feature_processing import get_fingerprints_from_meta, select_features
 
 
+def train_single_model(cfg, dataset, ae_loss_function=torch.nn.BCELoss()):
+
+    logger = logging.getLogger()
+
+    # Initialize DeepSVDD model and set neural network \phi
+    deep_SVDD = DeepSVDD(cfg.settings["objective"], cfg.settings["nu"], cfg.settings["rep_dim"], cfg.settings["in_features"])
+    deep_SVDD.set_network(cfg.settings["net_name"])
+
+    logger.info("Pretraining: %s" % cfg.settings["pretrain"])
+    if cfg.settings["pretrain"]:
+
+        # Log pretraining details
+        logger.info("Pretraining optimizer: %s" % cfg.settings["optimizer_name"])
+        logger.info("Pretraining learning rate: %g" % cfg.settings["ae_lr"])
+        logger.info("Pretraining epochs: %d" % cfg.settings["n_epochs"])
+        logger.info("Pretraining batch size: %d" % cfg.settings["batch_size"])
+        logger.info("Pretraining weight decay: %g" % cfg.settings["weight_decay"])
+
+        # Pretrain model on dataset (via autoencoder)
+        deep_SVDD.pretrain(
+            dataset,
+            optimizer_name=cfg.settings["optimizer_name"],
+            lr=cfg.settings["ae_lr"],
+            n_epochs=cfg.settings["n_epochs"],
+            lr_milestones=cfg.settings["lr_milestones"],
+            batch_size=cfg.settings["batch_size"],
+            weight_decay=cfg.settings["weight_decay"],
+            device=cfg.settings["device"],
+            n_jobs_dataloader=cfg.settings["n_jobs_dataloader"],
+            loss_function=ae_loss_function
+        )
+
+    # Log training details
+    logger.info("Training optimizer: %s" % cfg.settings["optimizer_name"])
+    logger.info("Training learning rate: %g" % cfg.settings["lr"])
+    logger.info("Training epochs: %d" % cfg.settings["n_epochs"])
+    logger.info("Training batch size: %d" % cfg.settings["batch_size"])
+    logger.info("Training weight decay: %g" % cfg.settings["weight_decay"])
+
+    # Train model on dataset
+    deep_SVDD.train(
+        dataset,
+        optimizer_name=cfg.settings["optimizer_name"],
+        lr=cfg.settings["lr"],
+        n_epochs=cfg.settings["n_epochs"],
+        lr_milestones=cfg.settings["lr_milestones"],
+        batch_size=cfg.settings["batch_size"],
+        weight_decay=cfg.settings["weight_decay"],
+        device=cfg.settings["device"],
+        n_jobs_dataloader=cfg.settings["n_jobs_dataloader"]
+    )
+
+    # Test model
+    deep_SVDD.test(dataset, device=cfg.settings["device"], n_jobs_dataloader=cfg.settings["n_jobs_dataloader"])
+
+    return deep_SVDD
+
+
 def train_likeness_scorer(
         normal_meta_path,
         results_path,
@@ -77,8 +135,10 @@ def train_likeness_scorer(
     logger.info('The filtered normal meta is %s.' % normal_meta_path)
     
     if non_normal_meta_path is not None:
-        logger.info('The filtered non normal fingerprint matrix path is %s.' % non_normal_fingerprints_path)
-        logger.info('The filtered non normal meta is %s.' % non_normal_meta_path)
+        logger.info('The filtered non-normal fingerprint matrix path is %s.' % non_normal_fingerprints_path)
+        logger.info('The filtered non-normal meta is %s.' % non_normal_meta_path)
+    else:
+        logger.info('A non-normal set has not been supplied')
 
     # Print configuration
     logger.info('Deep SVDD objective: %s' % cfg.settings['objective'])
@@ -102,9 +162,9 @@ def train_likeness_scorer(
     # Load data
     dataset, dataset_labels, validation_dataset = load_dataset(
         normal_dataset_path=normal_fingerprints_path,
-        normal_meta_path=dataset_meta_path,
+        normal_meta_path=normal_meta_path,
         non_normal_dataset_path=non_normal_fingerprints_path,
-        non_normal_dataset_meta_path=non_normal_dataset_meta_path,
+        non_normal_dataset_meta_path=non_normal_meta_path,
         seed=seed, 
         validation_split=validation_split, 
         test_split=validation_split
@@ -122,63 +182,5 @@ def train_likeness_scorer(
     deep_SVDD.save_results(export_json=results_path + '/results.json')
     deep_SVDD.save_model(export_model=results_path + '/model.tar', save_ae=pretrain)
     cfg.save_config(export_json=results_path + '/config.json')
-
-    return deep_SVDD
-
-
-def train_single_model(cfg, dataset, ae_loss_function=torch.nn.BCELoss()):
-
-    logger = logging.getLogger()
-
-    # Initialize DeepSVDD model and set neural network \phi
-    deep_SVDD = DeepSVDD(cfg.settings["objective"], cfg.settings["nu"], cfg.settings["rep_dim"], cfg.settings["in_features"])
-    deep_SVDD.set_network(cfg.settings["net_name"])
-
-    logger.info("Pretraining: %s" % cfg.settings["pretrain"])
-    if cfg.settings["pretrain"]:
-
-        # Log pretraining details
-        logger.info("Pretraining optimizer: %s" % cfg.settings["optimizer_name"])
-        logger.info("Pretraining learning rate: %g" % cfg.settings["ae_lr"])
-        logger.info("Pretraining epochs: %d" % cfg.settings["n_epochs"])
-        logger.info("Pretraining batch size: %d" % cfg.settings["batch_size"])
-        logger.info("Pretraining weight decay: %g" % cfg.settings["weight_decay"])
-
-        # Pretrain model on dataset (via autoencoder)
-        deep_SVDD.pretrain(
-            dataset,
-            optimizer_name=cfg.settings["optimizer_name"],
-            lr=cfg.settings["ae_lr"],
-            n_epochs=cfg.settings["n_epochs"],
-            lr_milestones=cfg.settings["lr_milestones"],
-            batch_size=cfg.settings["batch_size"],
-            weight_decay=cfg.settings["weight_decay"],
-            device=cfg.settings["device"],
-            n_jobs_dataloader=cfg.settings["n_jobs_dataloader"],
-            loss_function=ae_loss_function
-        )
-
-    # Log training details
-    logger.info("Training optimizer: %s" % cfg.settings["optimizer_name"])
-    logger.info("Training learning rate: %g" % cfg.settings["lr"])
-    logger.info("Training epochs: %d" % cfg.settings["n_epochs"])
-    logger.info("Training batch size: %d" % cfg.settings["batch_size"])
-    logger.info("Training weight decay: %g" % cfg.settings["weight_decay"])
-
-    # Train model on dataset
-    deep_SVDD.train(
-        dataset,
-        optimizer_name=cfg.settings["optimizer_name"],
-        lr=cfg.settings["lr"],
-        n_epochs=cfg.settings["n_epochs"],
-        lr_milestones=cfg.settings["lr_milestones"],
-        batch_size=cfg.settings["batch_size"],
-        weight_decay=cfg.settings["weight_decay"],
-        device=cfg.settings["device"],
-        n_jobs_dataloader=cfg.settings["n_jobs_dataloader"]
-    )
-
-    # Test model
-    deep_SVDD.test(dataset, device=cfg.settings["device"], n_jobs_dataloader=cfg.settings["n_jobs_dataloader"])
 
     return deep_SVDD
