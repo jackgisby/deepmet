@@ -52,15 +52,14 @@ def get_fingerprint_methods():
     }
 
 
-def get_fingerprints_from_meta(meta_path, results_path, name):
+def get_fingerprints_from_meta(meta_path, fingerprints_out_path):
 
-    fingerprint_matrix_path = results_path + "/" + name + "_fingerprints.csv"
     fingerprint_methods = get_fingerprint_methods()
 
     RDLogger.DisableLog('rdApp.*')
 
     with open(meta_path, "r", encoding="utf8") as meta_file, \
-         open("../data/mol_key_test/" + name + "_fingerprints.csv", "w", newline="") as structure_fingerprint_matrix:
+         open(fingerprints_out_path, "w", newline="") as structure_fingerprint_matrix:
 
         # 0 - ID, 1 - smiles
         meta_csv = csv.reader(meta_file, delimiter=",")  # Input smiles
@@ -71,27 +70,42 @@ def get_fingerprints_from_meta(meta_path, results_path, name):
             mol = Chem.MolFromSmiles(meta_row[1])
             structure_matrix_csv.writerow(smiles_to_matrix(meta_row[1], mol, fingerprint_methods))
 
-    return fingerprint_matrix_path
+    return fingerprints_out_path
 
 
-def select_features(normal_fingerprints_path, non_normal_fingerprints_path, unbalanced=0.1):
+def select_features(normal_fingerprints_path, normal_fingerprints_out_path,
+                    non_normal_fingerprints_paths=None, non_normal_fingerprints_out_paths=None,
+                    unbalanced=0.1):
 
     normal_fingerprints = pd.read_csv(normal_fingerprints_path, dtype=int, header=None, index_col=False)
-    non_normal_fingerprints = pd.read_csv(non_normal_fingerprints_path, dtype=int, header=None, index_col=False)
 
     # Get inital dataset shape
     normal_num_rows, normal_num_cols = normal_fingerprints.shape
     normal_index = normal_fingerprints.index
-    
-    non_normal_num_rows, normal_num_cols = non_normal_fingerprints.shape
-    non_normal_index = non_normal_fingerprints.index
 
     # Rename columns
     normal_fingerprints.columns = range(0, normal_num_cols)
-    non_normal_fingerprints.columns = range(0, normal_num_cols)
 
-    # Make sure both the columns are the same
-    assert all(normal_fingerprints.columns == non_normal_fingerprints.columns)
+    if non_normal_fingerprints_paths is not None:
+
+        if type(non_normal_fingerprints_paths) != "list":
+            non_normal_fingerprints_paths = [non_normal_fingerprints_paths]
+
+        if type(non_normal_fingerprints_out_paths) != "list":
+            non_normal_fingerprints_out_paths = [non_normal_fingerprints_out_paths]
+
+        non_normal_fingerprints = []
+
+        for i in range(len(non_normal_fingerprints_paths)):
+            non_normal_fingerprints[i] = pd.read_csv(non_normal_fingerprints_paths[i], dtype=int, header=None, index_col=False)
+
+            non_normal_num_rows, normal_num_cols = non_normal_fingerprints[i].shape
+            non_normal_index = non_normal_fingerprints[i].index
+
+            non_normal_fingerprints[i].columns = range(0, normal_num_cols)
+
+            # Make sure both the columns are the same
+            assert all(normal_fingerprints.columns == non_normal_fingerprints[i].columns)
 
     # Remove unbalanced features - https://doi.org/10.1021/acs.analchem.0c01450
     # Do this just for the normal features
@@ -115,27 +129,33 @@ def select_features(normal_fingerprints_path, non_normal_fingerprints_path, unba
         else:  # Binary features so should only be max of two different values
             assert False
 
-    # Remove columns based on those that are unbalanced in the normal dataset
+    # Remove columns that are unbalanced
     normal_fingerprints.drop(cols_to_remove, axis=1, inplace=True)
-    non_normal_fingerprints.drop(cols_to_remove, axis=1, inplace=True)
 
     # Check that we haven't removed any samples
     normal_num_rows_processed, normal_num_cols_processed = normal_fingerprints.shape
-    non_normal_num_rows_processed, non_normal_num_cols_processed = normal_fingerprints.shape
 
     assert normal_num_rows_processed == normal_num_rows
     assert all(normal_fingerprints.index == normal_index)
-    assert non_normal_num_rows_processed == non_normal_num_rows
-    assert all(non_normal_fingerprints.index == non_normal_index)
 
-    # Check all the columns are the same for each dataset
-    assert all(normal_fingerprints.columns == non_normal_fingerprints.columns)
+    # Save processed matrix
+    normal_fingerprints.to_csv(normal_fingerprints_out_path, header=False, index=False)
 
-    # Save
-    new_normal_fingerprints_path = "../data/mol_key_test/normal_fingerprints_processed.csv"
-    new_non_normal_fingerprints_path = "../data/mol_key_test/non_normal_fingerprints_processed.csv"
+    if non_normal_fingerprints_paths is not None:
+        for i in range(len(non_normal_fingerprints_paths)):
+            # Remove columns that are unbalanced in the normal dataset
+            non_normal_fingerprints[i].drop(cols_to_remove, axis=1, inplace=True)
+    
+            # Check no samples have been removed
+            non_normal_num_rows_processed, non_normal_num_cols_processed = normal_fingerprints.shape
+    
+            assert non_normal_num_rows_processed == non_normal_num_rows[i]
+            assert all(non_normal_fingerprints[i].index == non_normal_index[i])
+    
+            # Check all the columns are the same for each dataset
+            assert all(normal_fingerprints.columns == non_normal_fingerprints[i].columns)
+    
+            # Save
+            non_normal_fingerprints[i].to_csv(non_normal_fingerprints_out_paths[i], header=False, index=False)
 
-    normal_fingerprints.to_csv(new_normal_fingerprints_path, header=False, index=False)
-    normal_fingerprints.to_csv(new_non_normal_fingerprints_path, header=False, index=False)
-
-    return new_normal_fingerprints_path, new_non_normal_fingerprints_path
+    return normal_fingerprints_out_path, non_normal_fingerprints_out_paths
