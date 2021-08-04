@@ -1,8 +1,12 @@
 import os
 import jpype
+import numpy as np
 
 if not jpype.isJVMStarted():
-    cdk_path = os.path.join(DeepMet.__path__[0], 'tools', 'CDK', 'cdk-2.2.jar')
+
+    # TODO: use DeepMet reference when these functions are properly packaged
+    # cdk_path = os.path.join(DeepMet.__path__[0], 'tools', 'CDK', 'cdk-2.2.jar')
+    cdk_path = os.path.join("..", "..", "DeepMet", 'tools', 'CDK', 'cdk-2.2.jar')
     jpype.startJVM(jpype.getDefaultJVMPath(), "-ea", "-Djava.class.path=%s" % cdk_path)
     cdk = jpype.JPackage('org').openscience.cdk
 
@@ -17,6 +21,13 @@ def cdk_parser_smiles(smi):
 
 
 def cdk_fingerprint(smi, fp_type="pubchem"):
+
+    if fp_type == 'estate':
+        nbit = 79
+    elif fp_type == 'pubchem':
+        nbit = 881
+    elif fp_type == 'klekota-roth':
+        nbit = 4860
 
     _fingerprinters = {
         "pubchem": cdk.fingerprint.PubchemFingerprinter(cdk.silent.SilentChemObjectBuilder.getInstance()),
@@ -39,4 +50,7 @@ def cdk_fingerprint(smi, fp_type="pubchem"):
         bits.append(idx)
         idx = fp.nextSetBit(idx + 1)
 
-    return bits
+    vec = np.zeros(nbit)
+    vec[bits] = 1
+
+    return vec.astype(int)

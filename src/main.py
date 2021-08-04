@@ -70,7 +70,7 @@ def main(normal_meta_path, results_path, train_model, non_normal_path, normal_fi
                               validation_split=validation_split, test_split=test_split)
 
     else:
-        get_likeness_scores(dataset_path=dataset_path, results_path=results_path, load_model=load_model)
+        get_likeness_scores(dataset_path=normal_meta_path, results_path=results_path, load_model=load_model)
 
 
 if __name__ == "__main__":
