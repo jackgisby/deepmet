@@ -123,12 +123,14 @@ def train_likeness_scorer(
         non_normal_fingerprints_out_path = os.path.join(results_path, "non_normal_fingerprints_processed.csv")
 
     # Filter features if necessary
-    normal_fingerprints_path, non_normal_fingerprints_path = select_features(
+    normal_fingerprints_path, non_normal_fingerprints_paths = select_features(
         normal_fingerprints_path=normal_fingerprints_path,
         normal_fingerprints_out_path=normal_fingerprints_out_path,
         non_normal_fingerprints_paths=non_normal_fingerprints_path,
         non_normal_fingerprints_out_paths=non_normal_fingerprints_out_path
     )
+
+    non_normal_fingerprints_path = non_normal_fingerprints_paths[0]
 
     # Get configuration
     cfg = Config(locals().copy())
