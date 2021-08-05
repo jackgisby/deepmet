@@ -94,15 +94,17 @@ def select_features(normal_fingerprints_path, normal_fingerprints_out_path,
         if not isinstance(non_normal_fingerprints_out_paths, list):
             non_normal_fingerprints_out_paths = [non_normal_fingerprints_out_paths]
 
-        non_normal_fingerprints = []
+        non_normal_fingerprints, non_normal_num_rows, normal_num_cols, non_normal_index = [], [], [], []
 
         for i in range(len(non_normal_fingerprints_paths)):
-            non_normal_fingerprints[i] = pd.read_csv(non_normal_fingerprints_paths[i], dtype=int, header=None, index_col=False)
+            non_normal_fingerprints.append(pd.read_csv(non_normal_fingerprints_paths[i], dtype=int, header=None, index_col=False))
 
-            non_normal_num_rows, normal_num_cols = non_normal_fingerprints[i].shape
-            non_normal_index = non_normal_fingerprints[i].index
+            num_rows, num_cols = non_normal_fingerprints[i].shape
+            non_normal_num_rows.append(num_rows)
+            normal_num_cols.append(num_cols)
 
-            non_normal_fingerprints[i].columns = range(0, normal_num_cols)
+            non_normal_index.append(non_normal_fingerprints[i].index)
+            non_normal_fingerprints[i].columns = range(0, normal_num_cols[i])
 
             # Make sure both the columns are the same
             assert all(normal_fingerprints.columns == non_normal_fingerprints[i].columns)
@@ -147,8 +149,8 @@ def select_features(normal_fingerprints_path, normal_fingerprints_out_path,
             non_normal_fingerprints[i].drop(cols_to_remove, axis=1, inplace=True)
     
             # Check no samples have been removed
-            non_normal_num_rows_processed, non_normal_num_cols_processed = normal_fingerprints.shape
-    
+            non_normal_num_rows_processed, non_normal_num_cols_processed = non_normal_fingerprints[i].shape
+
             assert non_normal_num_rows_processed == non_normal_num_rows[i]
             assert all(non_normal_fingerprints[i].index == non_normal_index[i])
     
