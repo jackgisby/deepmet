@@ -88,10 +88,10 @@ def select_features(normal_fingerprints_path, normal_fingerprints_out_path,
 
     if non_normal_fingerprints_paths is not None:
 
-        if type(non_normal_fingerprints_paths) != "list":
+        if not isinstance(non_normal_fingerprints_paths, list):
             non_normal_fingerprints_paths = [non_normal_fingerprints_paths]
 
-        if type(non_normal_fingerprints_out_paths) != "list":
+        if not isinstance(non_normal_fingerprints_out_paths, list):
             non_normal_fingerprints_out_paths = [non_normal_fingerprints_out_paths]
 
         non_normal_fingerprints = []
