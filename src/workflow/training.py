@@ -10,9 +10,15 @@ from datasets.main import load_dataset
 from utils.feature_processing import get_fingerprints_from_meta, select_features
 
 
-def train_single_model(cfg, dataset, ae_loss_function=torch.nn.BCELoss()):
+def train_single_model(cfg, dataset, ae_loss_function=torch.nn.BCELoss(), seed=1):
 
     logger = logging.getLogger()
+
+    if seed != -1:
+        random.seed(cfg.settings['seed'])
+        np.random.seed(cfg.settings['seed'])
+        torch.manual_seed(cfg.settings['seed'])
+        logger.info('Set seed to %d.' % cfg.settings['seed'])
 
     # Initialize DeepSVDD model and set neural network \phi
     deep_SVDD = DeepSVDD(cfg.settings["objective"], cfg.settings["nu"], cfg.settings["rep_dim"], cfg.settings["in_features"])
@@ -154,14 +160,7 @@ def train_likeness_scorer(
 
     # Print configuration
     logger.info('Deep SVDD objective: %s' % cfg.settings['objective'])
-    logger.info('Nu-paramerter: %.2f' % cfg.settings['nu'])
-
-    # Set seed
-    if cfg.settings['seed'] != -1:
-        random.seed(cfg.settings['seed'])
-        np.random.seed(cfg.settings['seed'])
-        torch.manual_seed(cfg.settings['seed'])
-        logger.info('Set seed to %d.' % cfg.settings['seed'])
+    logger.info('Nu-parameter: %.2f' % cfg.settings['nu'])
 
     # Default device to 'cpu' if cuda is not available
     if not torch.cuda.is_available():
@@ -185,7 +184,7 @@ def train_likeness_scorer(
     logger.info('Number of input features: %d' % cfg.settings["in_features"])
 
     # Train the model (and estimate loss on the 'normal' validation set)
-    deep_SVDD = train_single_model(cfg, validation_dataset)
+    deep_SVDD = train_single_model(cfg, validation_dataset, seed=seed)
 
     # Test using separate test dataset (that ideally includes a set of 'non-normal' compounds)
     deep_SVDD.test(dataset, device=device)
