@@ -30,3 +30,4 @@ dependencies:
   - urllib3
   - rdkit
   - jpype1
+  - pyod
