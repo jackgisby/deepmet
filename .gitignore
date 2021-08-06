@@ -108,4 +108,4 @@ Temporary Items
 
 # Project-specific output folders
 data/mol_key_test
-log/
+paper_results/
