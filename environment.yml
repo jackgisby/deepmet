@@ -1,6 +1,7 @@
 name:
   DeepMet
 channels:
+  - anaconda
   - pytorch
   - conda-forge
 dependencies:
@@ -31,3 +32,4 @@ dependencies:
   - rdkit
   - jpype1
   - pyod
+  - jupyter
