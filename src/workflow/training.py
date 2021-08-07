@@ -10,11 +10,11 @@ from datasets.main import load_dataset
 from utils.feature_processing import get_fingerprints_from_meta, select_features
 
 
-def train_single_model(cfg, dataset, ae_loss_function=torch.nn.BCELoss(), seed=1):
+def train_single_model(cfg, dataset, ae_loss_function=torch.nn.BCELoss()):
 
     logger = logging.getLogger()
 
-    if seed != -1:
+    if cfg.settings['seed'] != -1:
         random.seed(cfg.settings['seed'])
         np.random.seed(cfg.settings['seed'])
         torch.manual_seed(cfg.settings['seed'])
