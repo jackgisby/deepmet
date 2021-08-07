@@ -193,9 +193,4 @@ def train_likeness_scorer(
 
     logger.info('The AUC on the test dataset is: %s' % str(deep_met_model.results["test_auc"]))
 
-    # Save results, model, and configuration
-    deep_SVDD.save_results(export_json=results_path + '/results.json')
-    deep_SVDD.save_model(export_model=results_path + '/model.tar', save_ae=pretrain)
-    cfg.save_config(export_json=results_path + '/config.json')
-
-    return deep_SVDD
+    return deep_met_model
