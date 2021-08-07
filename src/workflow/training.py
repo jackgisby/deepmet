@@ -21,8 +21,8 @@ def train_single_model(cfg, dataset, ae_loss_function=torch.nn.BCELoss()):
         logger.info('Set seed to %d.' % cfg.settings['seed'])
 
     # Initialize DeepSVDD model and set neural network \phi
-    deep_SVDD = DeepSVDD(cfg.settings["objective"], cfg.settings["nu"], cfg.settings["rep_dim"], cfg.settings["in_features"])
-    deep_SVDD.set_network(cfg.settings["net_name"])
+    deep_met_model = DeepSVDD(cfg.settings["objective"], cfg.settings["nu"], cfg.settings["rep_dim"], cfg.settings["in_features"])
+    deep_met_model.set_network(cfg.settings["net_name"])
 
     logger.info("Pretraining: %s" % cfg.settings["pretrain"])
     if cfg.settings["pretrain"]:
@@ -35,7 +35,7 @@ def train_single_model(cfg, dataset, ae_loss_function=torch.nn.BCELoss()):
         logger.info("Pretraining weight decay: %g" % cfg.settings["weight_decay"])
 
         # Pretrain model on dataset (via autoencoder)
-        deep_SVDD.pretrain(
+        deep_met_model.pretrain(
             dataset,
             optimizer_name=cfg.settings["optimizer_name"],
             lr=cfg.settings["ae_lr"],
@@ -55,7 +55,7 @@ def train_single_model(cfg, dataset, ae_loss_function=torch.nn.BCELoss()):
     logger.info("Training weight decay: %g" % cfg.settings["weight_decay"])
 
     # Train model on dataset
-    deep_SVDD.train(
+    deep_met_model.train(
         dataset,
         optimizer_name=cfg.settings["optimizer_name"],
         lr=cfg.settings["lr"],
@@ -67,9 +67,9 @@ def train_single_model(cfg, dataset, ae_loss_function=torch.nn.BCELoss()):
     )
 
     # Test model
-    deep_SVDD.test(dataset, device=cfg.settings["device"])
+    deep_met_model.test(dataset, device=cfg.settings["device"])
 
-    return deep_SVDD
+    return deep_met_model
 
 
 def train_likeness_scorer(
@@ -186,12 +186,12 @@ def train_likeness_scorer(
     logger.info('Number of input features: %d' % cfg.settings["in_features"])
 
     # Train the model (and estimate loss on the 'normal' validation set)
-    deep_SVDD = train_single_model(cfg, validation_dataset, seed=seed)
+    deep_met_model = train_single_model(cfg, validation_dataset)
 
     # Test using separate test dataset (that ideally includes a set of 'non-normal' compounds)
-    deep_SVDD.test(dataset, device=device)
+    deep_met_model.test(dataset, device=device)
 
-    logger.info('The AUC on the test dataset is: %s' % str(deep_SVDD.results["test_auc"]))
+    logger.info('The AUC on the test dataset is: %s' % str(deep_met_model.results["test_auc"]))
 
     # Save results, model, and configuration
     deep_SVDD.save_results(export_json=results_path + '/results.json')
