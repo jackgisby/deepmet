@@ -11,7 +11,7 @@ import torch.optim as optim
 import numpy as np
 
 
-class DeepSVDDTrainer(BaseTrainer):
+class DeepMetTrainer(BaseTrainer):
 
     def __init__(self, objective, R, c, nu: float, optimizer_name: str = 'adam', lr: float = 0.001, n_epochs: int = 150,
                  lr_milestones: tuple = (), batch_size: int = 128, weight_decay: float = 1e-6, device: str = 'cuda',
@@ -22,7 +22,7 @@ class DeepSVDDTrainer(BaseTrainer):
         assert objective in ('one-class', 'soft-boundary'), "Objective must be either 'one-class' or 'soft-boundary'."
         self.objective = objective
 
-        # Deep SVDD parameters
+        # Parameters
         self.R = torch.tensor(R, device=self.device)  # radius R initialized with 0 by default.
         self.c = torch.tensor(c, device=self.device) if c is not None else None
         self.nu = nu
@@ -228,6 +228,6 @@ class DeepSVDDTrainer(BaseTrainer):
 
 
 def get_radius(dist: torch.Tensor, nu: float):
-    """Optimally solve for radius R via the (1-nu)-quantile of distances."""
+    """ Optimally solve for radius R via the (1-nu)-quantile of distances. """
 
     return np.quantile(np.sqrt(dist.clone().data.cpu().numpy()), 1 - nu)

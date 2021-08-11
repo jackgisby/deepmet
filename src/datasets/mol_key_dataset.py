@@ -4,26 +4,26 @@ from base.loadable_dataset import LoadableDataset
 from torch.utils.data import Dataset, Subset
 
 
-class MolKeyDataset(LoadableDataset):
+class LoadableMolKeyDataset(LoadableDataset):
 
     def __init__(self, root: str, train_idx=None, test_idx=None, data=None, labels=None):
         super().__init__(root)
 
-        self.train_set = MolKey(root=self.root, train=True, data=data, labels=labels)
+        self.train_set = MolKeyDataset(root=self.root, train=True, data=data, labels=labels)
 
         if train_idx is not None:
           self.train_set = Subset(self.train_set, train_idx)
 
-        self.test_set = MolKey(root=self.root, train=False, data=data, labels=labels)
+        self.test_set = MolKeyDataset(root=self.root, train=False, data=data, labels=labels)
 
         if test_idx is not None:
             self.test_set = Subset(self.test_set, test_idx)
 
 
-class MolKey(Dataset):
+class MolKeyDataset(Dataset):
 
     def __init__(self, root, train, data=None, labels=None):
-        super(MolKey, self).__init__()
+        super(MolKeyDataset, self).__init__()
 
         self.train = train
 

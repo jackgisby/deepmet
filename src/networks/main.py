@@ -1,5 +1,5 @@
-from .basic_multilayer import BasicMultilayer, BasicMultilayerAutoencoder
-from .cocrystal_transformer import CocrystalTransformer, CocrystalTransformerAutoencoder
+from .basic_multilayer import BasicMultilayer
+from .cocrystal_transformer import CocrystalTransformer
 
 
 def build_network(net_name, rep_dim, in_features):

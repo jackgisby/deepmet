@@ -1,2 +1,1 @@
-from .deepSVDD_trainer import DeepSVDDTrainer
-from .ae_trainer import AETrainer
+from .trainer import DeepMetTrainer

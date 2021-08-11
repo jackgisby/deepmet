@@ -145,6 +145,7 @@ def select_features(normal_fingerprints_path, normal_fingerprints_out_path,
 
     if non_normal_fingerprints_paths is not None:
         for i in range(len(non_normal_fingerprints_paths)):
+
             # Remove columns that are unbalanced in the normal dataset
             non_normal_fingerprints[i].drop(cols_to_remove, axis=1, inplace=True)
     

@@ -1,1 +1,1 @@
-from .main import load_dataset
+from .main import load_training_dataset

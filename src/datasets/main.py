@@ -2,7 +2,8 @@ import os
 import random
 import numpy as np
 from math import floor
-from .mol_key_dataset import MolKeyDataset
+
+from .mol_key_dataset import LoadableMolKeyDataset
 
 
 def unison_shuffled_copies(a, b):
@@ -14,7 +15,7 @@ def unison_shuffled_copies(a, b):
     return a[p], b[p]
 
 
-def get_data_from_csv(dataset_path, meta_path):
+def get_data_from_csv(dataset_path, meta_path, shuffle=True):
 
     if not os.path.exists(dataset_path):
         raise FileNotFoundError
@@ -25,12 +26,15 @@ def get_data_from_csv(dataset_path, meta_path):
     self_x_data = np.loadtxt(dataset_path, delimiter=",", comments=None)
     self_labels = np.loadtxt(meta_path, delimiter=",", dtype=str, comments=None)
 
-    return unison_shuffled_copies(self_x_data, self_labels)
+    if shuffle:
+        return unison_shuffled_copies(self_x_data, self_labels)
+    else:
+        return self_x_data, self_labels
 
 
-def load_dataset(normal_dataset_path, normal_meta_path, non_normal_dataset_path=None,
-                 non_normal_dataset_meta_path=None, seed=1, validation_split=0.8, test_split=0.9):
-    """Loads the dataset."""
+def load_training_dataset(normal_dataset_path, normal_meta_path, non_normal_dataset_path=None,
+                          non_normal_dataset_meta_path=None, seed=1, validation_split=0.8, test_split=0.9):
+    """ Loads the dataset. """
     
     if seed != -1:
         random.seed(seed)
@@ -46,7 +50,7 @@ def load_dataset(normal_dataset_path, normal_meta_path, non_normal_dataset_path=
 
     if non_normal_dataset_path is not None:
 
-        other_x_data, other_labels = get_data_from_csv(non_normal_dataset_path, non_normal_dataset_meta_path)
+        other_x_data, other_labels = get_data_from_csv(non_normal_dataset_path, non_normal_dataset_meta_path, shuffle=True)
 
         x_data = np.concatenate([x_data, other_x_data])
         labels = np.concatenate([labels, other_labels])
@@ -60,8 +64,8 @@ def load_dataset(normal_dataset_path, normal_meta_path, non_normal_dataset_path=
             if i != j:
                 assert all([a_item not in b for a_item in a])
 
-    full_dataset = MolKeyDataset(root=normal_dataset_path, train_idx=train_index, test_idx=test_index, data=x_data, labels=labels[:,2])
-    val_dataset = MolKeyDataset(root=normal_dataset_path, train_idx=train_index, test_idx=val_index, data=x_data, labels=labels[:,2])
+    full_dataset = LoadableMolKeyDataset(root=normal_dataset_path, train_idx=train_index, test_idx=test_index, data=x_data, labels=labels[:, 2])
+    val_dataset = LoadableMolKeyDataset(root=normal_dataset_path, train_idx=train_index, test_idx=val_index, data=x_data, labels=labels[:, 2])
 
     return full_dataset, labels, val_dataset
 

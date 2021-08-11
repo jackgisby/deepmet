@@ -5,12 +5,12 @@ import random
 import numpy as np
 
 from utils.config import Config
-from deepSVDD import DeepSVDD
-from datasets.main import load_dataset
+from DeepMet import DeepMet
+from datasets.main import load_training_dataset
 from utils.feature_processing import get_fingerprints_from_meta, select_features
 
 
-def train_single_model(cfg, dataset, ae_loss_function=torch.nn.BCELoss()):
+def train_single_model(cfg, dataset):
 
     logger = logging.getLogger()
 
@@ -20,8 +20,8 @@ def train_single_model(cfg, dataset, ae_loss_function=torch.nn.BCELoss()):
         torch.manual_seed(cfg.settings['seed'])
         logger.info('Set seed to %d.' % cfg.settings['seed'])
 
-    # Initialize DeepSVDD model and set neural network \phi
-    deep_met_model = DeepSVDD(cfg.settings["objective"], cfg.settings["nu"], cfg.settings["rep_dim"], cfg.settings["in_features"])
+    # Initialize DeepMet model and set neural network \phi
+    deep_met_model = DeepMet(cfg.settings["objective"], cfg.settings["nu"], cfg.settings["rep_dim"], cfg.settings["in_features"])
     deep_met_model.set_network(cfg.settings["net_name"])
 
     # Log training details
@@ -52,7 +52,6 @@ def train_single_model(cfg, dataset, ae_loss_function=torch.nn.BCELoss()):
 def train_likeness_scorer(
         normal_meta_path,
         results_path,
-        load_config=False,
         non_normal_meta_path=None,
         normal_fingerprints_path=None,
         non_normal_fingerprints_path=None,
@@ -68,18 +67,11 @@ def train_likeness_scorer(
         lr_milestones=tuple(),
         batch_size=2000,
         weight_decay=1e-5,
-        pretrain=False,
-        ae_optimizer_name=None,
-        ae_lr=None,
-        ae_n_epochs=None,
-        ae_lr_milestones=None,
-        ae_batch_size=None,
-        ae_weight_decay=None,
         validation_split=0.8,
         test_split=0.9
 ):
     """
-    Train a DeepSVDD model based only on the 'normal' structures specified. 'non-normal' structures can be supplied
+    Train a DeepMet model based only on the 'normal' structures specified. 'non-normal' structures can be supplied
     to form a test set, however these are not used to train the model or optimise its parameters. The 'normal' and
     'non-normal' sets can be any classes of structures.
     """
@@ -100,7 +92,7 @@ def train_likeness_scorer(
         non_normal_fingerprints_out_path = os.path.join(results_path, "non_normal_fingerprints_processed.csv")
 
     # Filter features if necessary
-    normal_fingerprints_path, non_normal_fingerprints_paths = select_features(
+    normal_fingerprints_path, non_normal_fingerprints_paths, selected_features = select_features(
         normal_fingerprints_path=normal_fingerprints_path,
         normal_fingerprints_out_path=normal_fingerprints_out_path,
         non_normal_fingerprints_paths=non_normal_fingerprints_path,
@@ -149,7 +141,7 @@ def train_likeness_scorer(
     logger.info('Computation device: %s' % device)
 
     # Load data
-    dataset, dataset_labels, validation_dataset = load_dataset(
+    dataset, dataset_labels, validation_dataset = load_training_dataset(
         normal_dataset_path=normal_fingerprints_path,
         normal_meta_path=normal_meta_path,
         non_normal_dataset_path=non_normal_fingerprints_path,
