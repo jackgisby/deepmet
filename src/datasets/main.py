@@ -64,3 +64,13 @@ def load_dataset(normal_dataset_path, normal_meta_path, non_normal_dataset_path=
     val_dataset = MolKeyDataset(root=normal_dataset_path, train_idx=train_index, test_idx=val_index, data=x_data, labels=labels[:,2])
 
     return full_dataset, labels, val_dataset
+
+
+def load_testing_dataset(normal_dataset_path, normal_meta_path):
+
+    x_data, labels = get_data_from_csv(normal_dataset_path, normal_meta_path, shuffle=False)
+    num_rows, num_cols = x_data.shape
+
+    full_dataset = LoadableMolKeyDataset(root=normal_dataset_path, data=x_data, labels=np.zeros((num_rows, 1)))
+
+    return full_dataset, labels
