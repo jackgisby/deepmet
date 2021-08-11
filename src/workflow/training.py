@@ -24,29 +24,6 @@ def train_single_model(cfg, dataset, ae_loss_function=torch.nn.BCELoss()):
     deep_met_model = DeepSVDD(cfg.settings["objective"], cfg.settings["nu"], cfg.settings["rep_dim"], cfg.settings["in_features"])
     deep_met_model.set_network(cfg.settings["net_name"])
 
-    logger.info("Pretraining: %s" % cfg.settings["pretrain"])
-    if cfg.settings["pretrain"]:
-
-        # Log pretraining details
-        logger.info("Pretraining optimizer: %s" % cfg.settings["optimizer_name"])
-        logger.info("Pretraining learning rate: %g" % cfg.settings["ae_lr"])
-        logger.info("Pretraining epochs: %d" % cfg.settings["n_epochs"])
-        logger.info("Pretraining batch size: %d" % cfg.settings["batch_size"])
-        logger.info("Pretraining weight decay: %g" % cfg.settings["weight_decay"])
-
-        # Pretrain model on dataset (via autoencoder)
-        deep_met_model.pretrain(
-            dataset,
-            optimizer_name=cfg.settings["optimizer_name"],
-            lr=cfg.settings["ae_lr"],
-            n_epochs=cfg.settings["n_epochs"],
-            lr_milestones=cfg.settings["lr_milestones"],
-            batch_size=cfg.settings["batch_size"],
-            weight_decay=cfg.settings["weight_decay"],
-            device=cfg.settings["device"],
-            loss_function=ae_loss_function
-        )
-
     # Log training details
     logger.info("Training optimizer: %s" % cfg.settings["optimizer_name"])
     logger.info("Training learning rate: %g" % cfg.settings["lr"])
