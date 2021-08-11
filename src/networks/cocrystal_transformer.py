@@ -30,22 +30,6 @@ class CocrystalTransformer(BaseNet):
         return self.seq(x).squeeze()
 
 
-class CocrystalTransformerAutoencoder(CocrystalTransformer):
-
-    def __init__(self, rep_dim, in_features):
-        super().__init__(rep_dim=rep_dim, in_features=in_features)
-
-        self.encoder = CocrystalTransformer(rep_dim=rep_dim, in_features=in_features)
-        self.encoder.apply(init_weights)
-
-        self.decoder = nn.Sequential(nn.Linear(in_features=self.rep_dim, out_features=1000), nn.LeakyReLU(),
-                                     nn.Linear(in_features=1000, out_features=self.in_features), nn.Sigmoid())
-        self.decoder.apply(init_weights)
-
-    def forward(self, x):
-        return self.decoder(self.encoder(x))
-
-
 class MAB(nn.Module):
     def __init__(self, dim_Q, dim_K, dim_V, num_heads, ln=False):
         super(MAB, self).__init__()

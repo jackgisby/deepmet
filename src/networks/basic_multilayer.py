@@ -29,21 +29,3 @@ class BasicMultilayer(BaseNet):
         x = F.relu(self.fc_output(x))
 
         return x
-
-
-class BasicMultilayerAutoencoder(BasicMultilayer):
-
-    def __init__(self, rep_dim, in_features):
-        super().__init__(rep_dim=rep_dim, in_features=in_features)
-
-    def forward(self, x):
-
-        x = F.relu(self.deep1(x))
-        x = F.relu(self.deep2(x))
-        x = F.relu(self.fc_output(x))
-
-        x = F.relu(self.deep4(x))
-        x = F.relu(self.deep5(x))
-        x = F.sigmoid(self.deep6(x))
-
-        return x
