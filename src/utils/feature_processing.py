@@ -160,4 +160,17 @@ def select_features(normal_fingerprints_path, normal_fingerprints_out_path,
             # Save
             non_normal_fingerprints[i].to_csv(non_normal_fingerprints_out_paths[i], header=False, index=False)
 
-    return normal_fingerprints_out_path, non_normal_fingerprints_out_paths
+    return normal_fingerprints_out_path, non_normal_fingerprints_out_paths, cols_to_remove
+
+
+def drop_selected_features(fingerprints_path, fingerprints_out_path, cols_to_remove):
+
+    normal_fingerprints = pd.read_csv(fingerprints_path, dtype=int, header=None, index_col=False)
+
+    # Remove columns that are unbalanced
+    normal_fingerprints.drop(cols_to_remove, axis=1, inplace=True)
+
+    # Save processed matrix
+    normal_fingerprints.to_csv(fingerprints_out_path, header=False, index=False)
+
+    return fingerprints_out_path
