@@ -62,10 +62,7 @@ def main(normal_meta_path, results_path, train_model, non_normal_path, normal_fi
                               non_normal_fingerprints_path=non_normal_fingerprints_path,
                               net_name=net_name, objective=objective, nu=nu, device=device, seed=seed,
                               optimizer_name=optimizer_name, lr=lr, n_epochs=n_epochs, lr_milestones=lr_milestones,
-                              batch_size=batch_size, weight_decay=weight_decay, pretrain=pretrain,
-                              ae_optimizer_name=ae_optimizer_name, ae_lr=ae_lr, ae_n_epochs=ae_n_epochs,
-                              ae_lr_milestones=ae_lr_milestones, ae_batch_size=ae_batch_size,
-                              ae_weight_decay=ae_weight_decay,
+                              batch_size=batch_size, weight_decay=weight_decay,
                               validation_split=validation_split, test_split=test_split)
 
     else:
