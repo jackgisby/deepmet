@@ -56,7 +56,7 @@ def train_likeness_scorer(
         normal_fingerprints_path=None,
         non_normal_fingerprints_path=None,
         net_name="cocrystal_transformer",
-        objective="one-group",
+        objective="one-class",
         nu=0.1,
         rep_dim=200,
         device="cpu",
