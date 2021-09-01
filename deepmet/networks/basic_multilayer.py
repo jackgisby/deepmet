@@ -1,7 +1,7 @@
 import torch.nn as nn
 import torch.nn.functional as F
 
-from base.base_net import BaseNet
+from deepmet.base.base_net import BaseNet
 
 
 class BasicMultilayer(BaseNet):

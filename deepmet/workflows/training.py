@@ -4,10 +4,10 @@ import logging
 import random
 import numpy as np
 
-from utils.config import Config
-from DeepMet import DeepMet
-from datasets.main import load_training_dataset
-from utils.feature_processing import get_fingerprints_from_meta, select_features
+from deepmet.utils.config import Config
+from deepmet.core.model import DeepMet
+from deepmet.datasets.load_data import load_training_dataset
+from deepmet.utils.feature_processing import get_fingerprints_from_meta, select_features
 
 
 def train_single_model(cfg, dataset):

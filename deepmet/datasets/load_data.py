@@ -3,7 +3,7 @@ import random
 import numpy as np
 from math import floor
 
-from .mol_key_dataset import LoadableMolKeyDataset
+from deepmet.datasets.mol_key_dataset import LoadableMolKeyDataset
 
 
 def unison_shuffled_copies(a, b):

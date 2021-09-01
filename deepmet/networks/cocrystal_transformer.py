@@ -2,7 +2,7 @@ from math import sqrt
 import torch
 import torch.nn as nn
 
-from base.base_net import BaseNet
+from deepmet.base.base_net import BaseNet
 
 
 def init_weights(m):

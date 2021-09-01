@@ -1,9 +1,9 @@
 import os
 
-from utils.config import Config
-from DeepMet import DeepMet
-from datasets.main import load_testing_dataset
-from utils.feature_processing import get_fingerprints_from_meta, drop_selected_features
+from deepmet.utils.config import Config
+from deepmet.core.model import DeepMet
+from deepmet.datasets.load_data import load_testing_dataset
+from deepmet.utils.feature_processing import get_fingerprints_from_meta, drop_selected_features
 
 
 def get_likeness_scores(dataset_path, results_path, load_config=None, load_model=None, device="cpu"):

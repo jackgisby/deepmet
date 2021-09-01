@@ -3,7 +3,7 @@ import pandas as pd
 from rdkit import Chem, RDLogger
 from rdkit.Chem import MACCSkeys, AllChem
 
-from .cdk import cdk_fingerprint
+from deepmet.utils.cdk import cdk_fingerprint
 
 
 def get_mol_fingerprint(smiles, mol, method_name, method, nbit=1024):

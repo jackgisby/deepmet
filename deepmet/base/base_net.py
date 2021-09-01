@@ -1,6 +1,6 @@
 import logging
-import torch.nn as nn
 import numpy as np
+import torch.nn as nn
 
 
 class BaseNet(nn.Module):

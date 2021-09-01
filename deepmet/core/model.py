@@ -1,9 +1,9 @@
 import json
 import torch
 
-from base.base_dataset import BaseADDataset
-from networks.main import build_network
-from optim.trainer import DeepMetTrainer
+from deepmet.base.base_dataset import BaseADDataset
+from deepmet.networks.network_builder import build_network
+from deepmet.core.trainer import DeepMetTrainer
 
 
 class DeepMet(object):

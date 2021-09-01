@@ -1,8 +1,8 @@
 from abc import ABC, abstractmethod
-from .base_dataset import BaseADDataset
-from .base_net import BaseNet
 from typing import Callable, Union
 
+from deepmet.base.base_dataset import BaseADDataset
+from deepmet.base.base_net import BaseNet
 
 class BaseTrainer(ABC):
     """ Trainer base class. """

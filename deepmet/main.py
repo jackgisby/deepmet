@@ -1,6 +1,7 @@
 import click
-from workflow.training import train_likeness_scorer
-from workflow.scoring import get_likeness_scores
+
+from deepmet.workflows.training import train_likeness_scorer
+from deepmet.workflows.scoring import get_likeness_scores
 
 
 @click.command()

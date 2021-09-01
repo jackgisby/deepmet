@@ -1,6 +1,6 @@
 import numpy as np
 
-from base.loadable_dataset import LoadableDataset
+from deepmet.base.loadable_dataset import LoadableDataset
 from torch.utils.data import Dataset, Subset
 
 
