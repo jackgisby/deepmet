@@ -15,7 +15,7 @@ def main():
         keywords=['Metabolomics', 'Lipidomics', 'Mass spectrometry', 'Metabolite Identification'],
         packages=setuptools.find_packages(),
         test_suite='tests.suite',
-        python_requires='>=3.8',
+        python_requires='>=3.6',
         install_requires=open('requirements.txt').read().splitlines(),
         include_package_data=True,
         classifiers=[
