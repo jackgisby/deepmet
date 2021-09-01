@@ -59,7 +59,7 @@ class TrainModelTestCase(unittest.TestCase):
         cls.reduced_normal_meta_path = get_meta_subset(
             cls.to_test_results("data", "test_set", "hmdb_meta.csv"),
             cls.to_test_results("normal_meta.csv"),
-            sample_size=50
+            sample_size=500
         )
 
         np.random.seed(1)
@@ -82,7 +82,7 @@ class TrainModelTestCase(unittest.TestCase):
             objective="one-class",
             nu=0.1,
             rep_dim=200,
-            device="cpu",
+            device="cuda",
             seed=1,
             optimizer_name="amsgrad",
             lr=0.000100095,
@@ -91,7 +91,7 @@ class TrainModelTestCase(unittest.TestCase):
             batch_size=10,
             weight_decay=1e-5,
             validation_split=0.8,
-            test_split=1.0
+            test_split=None
         )
 
         cls.rescore_results_path = cls.to_test_results("deep_met_model_rescored")
@@ -102,31 +102,24 @@ class TrainModelTestCase(unittest.TestCase):
             results_path=cls.rescore_results_path,
             load_model=os.path.join(cls.fresh_results_path, "model.tar"),
             load_config=os.path.join(cls.fresh_results_path, "config.json"),
-            device="cpu"
+            device="cuda"
         )
 
     def test_trained_deep_met(self):
 
         # does the newly trained DeepMet model have the expected test results
-        # self.assertAlmostEqual(self.deep_met_model_fresh.results["test_auc"], 0.9632)
-        # self.assertAlmostEqual(self.deep_met_model_fresh.results["test_loss"], 1.2379742026329041)
-        return
+        self.assertAlmostEqual(self.deep_met_model_fresh.results["test_loss"], 1.933105182647705)
 
     def test_rescored_deep_met(self):
 
-        print(self.deep_met_results_rescore)
-        print(self.deep_met_model_fresh.results["test_scores"])
+        # get the scores on the test set
+        original_scores = [score_entry[2] for score_entry in self.deep_met_model_fresh.results["test_scores"]]
+        rescores = [score_entry[2] for score_entry in self.deep_met_results_rescore]
+
         # check that the re-loaded model gives the same test results as the original model
-        self.assertEqual(
-            self.deep_met_results_rescore,
-            self.deep_met_model_fresh.results["test_scores"]
-        )
+        for original_score, rescore in zip(original_scores, rescores):
 
-    @classmethod
-    def tearDownClass(cls):
-
-        # close connections
-        cls.deep_met_model_fresh = None
+            self.assertAlmostEqual(original_score, rescore, places=5)
 
 
 if __name__ == '__main__':
