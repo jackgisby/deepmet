@@ -162,4 +162,8 @@ def train_likeness_scorer(
 
     logger.info('The AUC on the test dataset is: %s' % str(deep_met_model.results["test_auc"]))
 
+    # save model and config
+    deep_met_model.save_model(os.path.join(results_path, "model.tar"))
+    cfg.save_config(os.path.join(results_path, "config.json"))
+
     return deep_met_model
