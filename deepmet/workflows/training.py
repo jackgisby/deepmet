@@ -109,6 +109,7 @@ def train_likeness_scorer(
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
     log_file = results_path + '/log.txt'
     file_handler = logging.FileHandler(log_file)
     file_handler.setLevel(logging.INFO)
@@ -161,6 +162,9 @@ def train_likeness_scorer(
     deep_met_model.test(dataset, device=device)
 
     logger.info('The AUC on the test dataset is: %s' % str(deep_met_model.results["test_auc"]))
+
+    # close connection to log file
+    logger.removeHandler(file_handler)
 
     # save model and config
     deep_met_model.save_model(os.path.join(results_path, "model.tar"))
