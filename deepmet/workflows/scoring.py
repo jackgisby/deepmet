@@ -1,4 +1,5 @@
 import os
+import torch
 
 from deepmet.utils.config import Config
 from deepmet.core.model import DeepMet
@@ -16,6 +17,11 @@ def get_likeness_scores(dataset_path, results_path, load_config=None, load_model
 
     cfg = Config(locals().copy())
     cfg.load_config(import_json=load_config)
+
+    # Default device to 'cpu' if cuda is not available
+    if not torch.cuda.is_available():
+        print("cuda not available: defaulting to cpu")
+        device = 'cpu'
 
     # If required, computes the fingerprints from the input smiles
     input_fingerprints_path = get_fingerprints_from_meta(dataset_path, os.path.join(results_path, "input_fingerprints.csv"))
