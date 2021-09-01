@@ -45,7 +45,12 @@ def load_training_dataset(normal_dataset_path, normal_meta_path, non_normal_data
     num_rows, num_cols = x_data.shape
     train_val_split_index = floor(num_rows * validation_split)
     train_index = range(0, train_val_split_index)
-    val_test_split_index = floor(num_rows * test_split)
+
+    if test_split is None:
+        val_test_split_index = num_rows
+    else:
+        val_test_split_index = floor(num_rows * test_split)
+
     val_index = range(train_val_split_index, val_test_split_index)
 
     if non_normal_dataset_path is not None:
