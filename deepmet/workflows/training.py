@@ -76,6 +76,11 @@ def train_likeness_scorer(
     'non-normal' sets can be any classes of structures.
     """
 
+    # Default device to 'cpu' if cuda is not available
+    if not torch.cuda.is_available():
+        print("cuda not available: defaulting to cpu")
+        device = 'cpu'
+
     # If required, computes the fingerprints from the input smiles
     if normal_fingerprints_path is None:
         normal_fingerprints_path = get_fingerprints_from_meta(normal_meta_path, os.path.join(results_path, "normal_fingerprints.csv"))
@@ -133,11 +138,6 @@ def train_likeness_scorer(
     # Print configuration
     logger.info('Deep SVDD objective: %s' % cfg.settings['objective'])
     logger.info('Nu-parameter: %.2f' % cfg.settings['nu'])
-
-    # Default device to 'cpu' if cuda is not available
-    if not torch.cuda.is_available():
-        print("cuda not available: defaulting to cpu")
-        device = 'cpu'
 
     logger.info('Computation device: %s' % device)
 
