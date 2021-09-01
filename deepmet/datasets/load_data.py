@@ -50,7 +50,7 @@ def load_training_dataset(normal_dataset_path, normal_meta_path, non_normal_data
 
     if non_normal_dataset_path is not None:
 
-        other_x_data, other_labels = get_data_from_csv(non_normal_dataset_path, non_normal_dataset_meta_path, shuffle=True)
+        other_x_data, other_labels = get_data_from_csv(non_normal_dataset_path, non_normal_dataset_meta_path, shuffle=False)
 
         x_data = np.concatenate([x_data, other_x_data])
         labels = np.concatenate([labels, other_labels])
