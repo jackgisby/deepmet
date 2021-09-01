@@ -2,11 +2,12 @@ import os
 import jpype
 import numpy as np
 
+import deepmet
+
 if not jpype.isJVMStarted():
 
-    # TODO: use DeepMet reference when these functions are properly packaged
-    # cdk_path = os.path.join(DeepMet.__path__[0], 'tools', 'CDK', 'cdk-2.2.jar')
-    cdk_path = os.path.join("..", "..", "DeepMet", 'tools', 'CDK', 'cdk-2.2.jar')
+    cdk_path = os.path.join(deepmet.__path__[0], os.pardir, 'tools', 'CDK', 'cdk-2.2.jar')
+
     jpype.startJVM(jpype.getDefaultJVMPath(), "-ea", "-Djava.class.path=%s" % cdk_path)
     cdk = jpype.JPackage('org').openscience.cdk
 
