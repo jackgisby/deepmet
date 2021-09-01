@@ -30,6 +30,6 @@ dependencies:
   - ujson
   - urllib3
   - rdkit
-  - jpype1
+  - jpype1>=1.2.1
   - pyod
   - jupyter
