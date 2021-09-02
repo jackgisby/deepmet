@@ -19,6 +19,7 @@
 # along with DeepMet.  If not, see <https://www.gnu.org/licenses/>.
 
 import os
+import sys
 import csv
 import unittest
 import tempfile
@@ -132,9 +133,13 @@ class TrainModelTestCase(unittest.TestCase):
             places = 1
 
         # does the newly trained DeepMet model have the expected test results
-        self.assertAlmostEqual(self.deep_met_model_fresh.results["test_loss"], 1.933105182647705, places=1)
+        self.assertAlmostEqual(self.deep_met_model_fresh.results["test_loss"], 1.933105182647705, places=places)
 
     def test_rescored_deep_met(self):
+
+        # ensure expected test subset has been selected
+        zinc_test_set = ['ZINC_416', 'ZINC_645', 'ZINC_1545', 'ZINC_2402', 'ZINC_3260', 'ZINC_3665', 'ZINC_4107', 'ZINC_4212', 'ZINC_4908', 'ZINC_5544', 'ZINC_5874', 'ZINC_6399', 'ZINC_6480', 'ZINC_6545', 'ZINC_6683', 'ZINC_7084', 'ZINC_7660', 'ZINC_7691', 'ZINC_7807', 'ZINC_7840', 'ZINC_8111', 'ZINC_8203', 'ZINC_9584', 'ZINC_9587', 'ZINC_10447', 'ZINC_11455', 'ZINC_11456', 'ZINC_12471', 'ZINC_12498', 'ZINC_13429', 'ZINC_13587', 'ZINC_13691', 'ZINC_14704', 'ZINC_14833', 'ZINC_15104', 'ZINC_15575', 'ZINC_15592', 'ZINC_16830', 'ZINC_16968', 'ZINC_17275', 'ZINC_17878', 'ZINC_17894', 'ZINC_18018', 'ZINC_18058', 'ZINC_18285', 'ZINC_18334', 'ZINC_19005', 'ZINC_19548', 'ZINC_19628', 'ZINC_19715']
+        self.assertEqual([score_entry[0] for score_entry in self.deep_met_results_rescore], zinc_test_set)
 
         # get the scores on the test set
         original_scores = [score_entry[2] for score_entry in self.deep_met_model_fresh.results["test_scores"]]
