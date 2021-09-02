@@ -118,6 +118,11 @@ class TrainModelTestCase(unittest.TestCase):
 
             num_rows, num_cols = fingerprints.shape
 
+            if "processed" in fingerprint_csv:
+                self.assertEqual(num_cols, 2746)
+            else:
+                self.assertEqual(num_cols, 13155)
+
 
 if __name__ == '__main__':
     unittest.main()
