@@ -173,16 +173,6 @@ class DeepMet(object):
         self.results['test_scores'] = self.trainer.test_scores
         self.results['test_loss'] = self.trainer.test_loss
 
-    def visualise_network(self, dataset: BaseADDataset, device: str = 'cuda', n_jobs_dataloader: int = 0):
-        """Gets the values of the model's latent layer for visualisation."""
-
-        if self.trainer is None:
-            self.trainer = DeepMetTrainer(self.objective, self.R, self.c, self.nu,
-                                          device=device, n_jobs_dataloader=n_jobs_dataloader)
-
-        self.trainer.visualise(dataset, self.net)
-        self.visualisation = self.trainer.latent_visualisation
-
     def save_model(self, export_model):
         """Save DeepMet model to export_model."""
 
