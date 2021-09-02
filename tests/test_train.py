@@ -1,3 +1,23 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+#
+# Copyright © 2021 Ralf Weber
+#
+# This file is part of DeepMet.
+#
+# DeepMet is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# DeepMet is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with DeepMet.  If not, see <https://www.gnu.org/licenses/>.
+
 import os
 import csv
 import unittest
@@ -104,11 +124,10 @@ class TrainModelTestCase(unittest.TestCase):
             device="cuda"
         )
 
-    # @unittest.skip  # TODO: re-instate this test after locking package versions?
     def test_trained_deep_met(self):
 
         # does the newly trained DeepMet model have the expected test results
-        self.assertAlmostEqual(self.deep_met_model_fresh.results["test_loss"], 1.933105182647705)
+        self.assertAlmostEqual(self.deep_met_model_fresh.results["test_loss"], 1.933105182647705, places=1)
 
     def test_rescored_deep_met(self):
 
