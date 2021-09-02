@@ -108,5 +108,5 @@ Temporary Items
 
 # Project-specific output folders
 deepmet/data/mol_key_test
-paper_results/
+notebook_results/
 tests/tmp*
