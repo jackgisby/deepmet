@@ -7,16 +7,13 @@ def main():
     setuptools.setup(
         name="deepmet",
         version=deepmet.__version__,
-        description="",
         long_description=open('README.rst').read(),
         url="https://github.com/computational-metabolomics/deepmet",
         license="GPLv3",
         platforms=['Windows, UNIX'],
         keywords=['Metabolomics', 'Lipidomics', 'Mass spectrometry', 'Metabolite Identification'],
         packages=setuptools.find_packages(),
-        test_suite='tests.suite',
-        python_requires='>=3.8',
-        install_requires=open('requirements.txt').read().splitlines(),
+        python_requires='>=3.6',
         include_package_data=True,
         classifiers=[
           "Programming Language :: Python :: 3",

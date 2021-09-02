@@ -8,7 +8,7 @@ dependencies:
   - requests
   - numpy
   - scipy
-  - scikit-learn
+  - scikit-learn=0.24.2
   - certifi
   - chardet
   - Click
@@ -23,13 +23,13 @@ dependencies:
   - python-dateutil
   - pytz
   - six
-  - pytorch
-  - torchvision
-  - torchaudio
+  - pytorch=1.7.0
+  - torchvision=0.8.1
+  - torchaudio=0.7.0
   - tqdm
   - ujson
   - urllib3
   - rdkit
-  - jpype1
-  - pyod
+  - jpype1=1.2.1
+  - pyod=0.9.0
   - jupyter

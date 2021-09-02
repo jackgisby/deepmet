@@ -1,3 +1,46 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+#
+# Copyright © 2021 Ralf Weber
+#
+# This file is part of DeepMet.
+#
+# DeepMet is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# DeepMet is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with DeepMet.  If not, see <https://www.gnu.org/licenses/>.
+#
+# This file incorporates work covered by the following copyright and
+# permission notice:
+#
+#   Copyright (c) 2018 Lukas Ruff
+#
+#   Permission is hereby granted, free of charge, to any person obtaining a copy
+#   of this software and associated documentation files (the "Software"), to deal
+#   in the Software without restriction, including without limitation the rights
+#   to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+#   copies of the Software, and to permit persons to whom the Software is
+#   furnished to do so, subject to the following conditions:
+#
+#   The above copyright notice and this permission notice shall be included in all
+#   copies or substantial portions of the Software.
+#
+#   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+#   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+#   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+#   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+#   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+#   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+#   SOFTWARE.
+
 import os
 import torch
 import logging
@@ -56,7 +99,7 @@ def train_likeness_scorer(
         normal_fingerprints_path=None,
         non_normal_fingerprints_path=None,
         net_name="cocrystal_transformer",
-        objective="one-group",
+        objective="one-class",
         nu=0.1,
         rep_dim=200,
         device="cpu",
@@ -75,6 +118,11 @@ def train_likeness_scorer(
     to form a test set, however these are not used to train the model or optimise its parameters. The 'normal' and
     'non-normal' sets can be any classes of structures.
     """
+
+    # Default device to 'cpu' if cuda is not available
+    if not torch.cuda.is_available():
+        print("cuda not available: defaulting to cpu")
+        device = 'cpu'
 
     # If required, computes the fingerprints from the input smiles
     if normal_fingerprints_path is None:
@@ -109,6 +157,7 @@ def train_likeness_scorer(
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
     log_file = results_path + '/log.txt'
     file_handler = logging.FileHandler(log_file)
     file_handler.setLevel(logging.INFO)
@@ -133,11 +182,6 @@ def train_likeness_scorer(
     logger.info('Deep SVDD objective: %s' % cfg.settings['objective'])
     logger.info('Nu-parameter: %.2f' % cfg.settings['nu'])
 
-    # Default device to 'cpu' if cuda is not available
-    if not torch.cuda.is_available():
-        print("cuda not available: defaulting to cpu")
-        device = 'cpu'
-
     logger.info('Computation device: %s' % device)
 
     # Load data
@@ -161,5 +205,12 @@ def train_likeness_scorer(
     deep_met_model.test(dataset, device=device)
 
     logger.info('The AUC on the test dataset is: %s' % str(deep_met_model.results["test_auc"]))
+
+    # close connection to log file
+    logger.removeHandler(file_handler)
+
+    # save model and config
+    deep_met_model.save_model(os.path.join(results_path, "model.tar"))
+    cfg.save_config(os.path.join(results_path, "config.json"))
 
     return deep_met_model

@@ -1,12 +1,33 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+#
+# Copyright © 2021 Ralf Weber
+#
+# This file is part of DeepMet.
+#
+# DeepMet is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# DeepMet is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with DeepMet.  If not, see <https://www.gnu.org/licenses/>.
+
 import os
 import jpype
 import numpy as np
 
+import deepmet
+
 if not jpype.isJVMStarted():
 
-    # TODO: use DeepMet reference when these functions are properly packaged
-    # cdk_path = os.path.join(DeepMet.__path__[0], 'tools', 'CDK', 'cdk-2.2.jar')
-    cdk_path = os.path.join("..", "..", "DeepMet", 'tools', 'CDK', 'cdk-2.2.jar')
+    cdk_path = os.path.join(deepmet.__path__[0], os.pardir, 'tools', 'CDK', 'cdk-2.2.jar')
+
     jpype.startJVM(jpype.getDefaultJVMPath(), "-ea", "-Djava.class.path=%s" % cdk_path)
     cdk = jpype.JPackage('org').openscience.cdk
 
