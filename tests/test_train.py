@@ -102,7 +102,7 @@ class TrainModelTestCase(unittest.TestCase):
             objective="one-class",
             nu=0.1,
             rep_dim=200,
-            device="cuda",
+            device="cpu",
             seed=1,
             optimizer_name="amsgrad",
             lr=0.000100095,
@@ -122,18 +122,13 @@ class TrainModelTestCase(unittest.TestCase):
             results_path=cls.rescore_results_path,
             load_model=os.path.join(cls.fresh_results_path, "model.tar"),
             load_config=os.path.join(cls.fresh_results_path, "config.json"),
-            device="cuda"
+            device="cpu"
         )
 
     def test_trained_deep_met(self):
 
-        if os.name == "nt" and sys.version_info >= (3, 8):
-            places = 5
-        else:
-            places = 1
-
         # does the newly trained DeepMet model have the expected test results
-        self.assertAlmostEqual(self.deep_met_model_fresh.results["test_loss"], 1.933105182647705, places=places)
+        self.assertAlmostEqual(self.deep_met_model_fresh.results["test_loss"], 1.9605159521102906, places=1)
 
     def test_rescored_deep_met(self):
 
