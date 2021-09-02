@@ -418,34 +418,6 @@ class DeepMetTrainer(BaseTrainer):
 
         logger.info('Finished testing.')
 
-    def visualise(self, dataset: BaseADDataset, net: BaseNet):
-        """Get the latent layer of the model for visualisation."""
-
-        # Set device for network
-        net = net.to(self.device)
-
-        # Get test data loader
-        _, test_loader = dataset.loaders(batch_size=self.batch_size, num_workers=self.n_jobs_dataloader)
-
-        # Testing
-        latent_dims = []
-        net.eval()
-        with torch.no_grad():
-            for data in test_loader:
-
-                inputs, labels, idx = data
-                inputs = inputs.to(self.device)
-                outputs = net(inputs.float())
-
-                outputs_min_c = outputs - self.c
-                outputs_min_c_sq = outputs_min_c ** 2
-
-                latent_dims += list(zip(idx.cpu().data.numpy().tolist(),
-                                        labels.cpu().data.numpy().tolist(),
-                                        outputs_min_c_sq.cpu().data.numpy().tolist()))
-
-        self.latent_visualisation = latent_dims
-
     def init_center_c(self, train_loader: DataLoader, net: BaseNet, eps=0.1):
         """
         Initialize hypersphere center c as the mean from an initial forward pass on the data.
