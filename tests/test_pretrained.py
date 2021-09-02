@@ -18,38 +18,11 @@
 # You should have received a copy of the GNU General Public License
 # along with DeepMet.  If not, see <https://www.gnu.org/licenses/>.
 
-import os
-import sys
-import csv
 import unittest
-import tempfile
-import numpy as np
-from shutil import copytree
+import pandas as pd
 
-from deepmet.workflows.training import train_likeness_scorer
+from tests.auxiliary import *
 from deepmet.workflows.scoring import get_likeness_scores
-
-
-def get_meta_subset(full_meta_path, reduced_meta_path, sample_size=200):
-    with open(full_meta_path, "r", encoding="utf8") as full_meta_file:
-        full_meta_csv = csv.reader(full_meta_file, delimiter=",")
-
-        meta_rows = []
-
-        for i, meta_row in enumerate(full_meta_csv):
-            meta_rows.append(meta_row)
-
-    random_choices = np.random.choice(i, size=sample_size, replace=False)
-
-    with open(reduced_meta_path, "w", newline="") as reduced_meta_file:
-        reduced_meta_csv = csv.writer(reduced_meta_file)
-
-        for i, meta_row in enumerate(meta_rows):
-
-            if i in random_choices:
-                reduced_meta_csv.writerow(meta_row)
-
-    return reduced_meta_path
 
 
 class TrainModelTestCase(unittest.TestCase):
@@ -61,32 +34,14 @@ class TrainModelTestCase(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
+
         # create temporary directory for testing
-        cls.temp_results_dir = tempfile.TemporaryDirectory(dir=os.path.dirname(os.path.realpath(__file__)))
-
-        # create a copy of relevant data in the test's temporary folder
-        copytree(os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "data"), cls.to_test_results("data"))
-
-        # path to input metadata
-        cls.normal_meta_path = cls.to_test_results("normal_meta.csv")
-        cls.non_normal_meta_path = cls.to_test_results("non_normal_meta.csv")
+        cls.temp_results_dir = make_temp_results_dir()
 
         # get a subset of the full input data
+        cls.normal_meta_path, cls.non_normal_meta_path = get_normal_non_normal_subsets(cls.to_test_results())
 
-        np.random.seed(1)
-        cls.reduced_normal_meta_path = get_meta_subset(
-            cls.to_test_results("data", "test_set", "hmdb_meta.csv"),
-            cls.to_test_results("normal_meta.csv"),
-            sample_size=500
-        )
-
-        np.random.seed(1)
-        cls.reduced_non_normal_meta_path = get_meta_subset(
-            cls.to_test_results("data", "test_set", "zinc_meta.csv"),
-            cls.to_test_results("non_normal_meta.csv"),
-            sample_size=50
-        )
-
+        # carry out likeness scoring using pretrained model
         cls.pretrained_results_path = cls.to_test_results("pretrained_results_path")
         os.mkdir(cls.pretrained_results_path)
 
@@ -107,6 +62,26 @@ class TrainModelTestCase(unittest.TestCase):
         for original_score, rescore in zip(expected_scores, calculated_scores):
 
             self.assertAlmostEqual(original_score, rescore, places=5)
+
+    def test_feature_processing(self):
+
+        fingerprint_csvs = ("input_fingerprints.csv", "input_fingerprints_processed.csv")
+
+        for fingerprint_csv in fingerprint_csvs:
+
+            fingerprints = pd.read_csv(
+                os.path.join(self.pretrained_results_path, fingerprint_csv),
+                dtype=int,
+                header=None,
+                index_col=False
+            )
+
+            num_rows, num_cols = fingerprints.shape
+
+            if "processed" in fingerprint_csv:
+                self.assertEqual(num_cols, 2800)
+            else:
+                self.assertEqual(num_cols, 13155)
 
 
 if __name__ == '__main__':
