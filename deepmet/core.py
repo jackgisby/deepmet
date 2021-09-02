@@ -41,12 +41,14 @@
 #   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 #   SOFTWARE.
 
+import os
 import json
 import time
 import torch
 import logging
 import numpy as np
 import torch.optim as optim
+from typing import BinaryIO, Union
 from torch.utils.data.dataloader import DataLoader
 from sklearn.metrics import roc_auc_score
 
@@ -151,7 +153,8 @@ class DeepMet(object):
 
     def test(self, dataset: BaseADDataset, device: str = 'cuda', n_jobs_dataloader: int = 0):
         """
-        Tests the DeepMet model on the test data.
+        Tests the DeepMet model on the test data. Calls :py:meth:`deepmet.core.DeepMetTrainer` to carry out the
+        training process.
 
         :param device: The device to be used to train the model. One of "cuda" or "cpu".
 
@@ -173,8 +176,12 @@ class DeepMet(object):
         self.results['test_scores'] = self.trainer.test_scores
         self.results['test_loss'] = self.trainer.test_loss
 
-    def save_model(self, export_model):
-        """Save DeepMet model to export_model."""
+    def save_model(self, export_model: Union[str, os.PathLike, BinaryIO]):
+        """
+        Save DeepMet model to export_model. Saves the model's radius, centre and network state dictionary.
+
+        :param export_model: File path for the model to be exported to.
+        """
 
         net_dict = self.net.state_dict()
 
@@ -184,7 +191,11 @@ class DeepMet(object):
                    export_model)
 
     def load_model(self, model_path):
-        """ Load DeepMet model from model_path. """
+        """
+        Load DeepMet model from model_path. Gets the model's radius, centre and network state dictionary.
+
+        :param model_path: File path for the model to be loaded from.
+        """
 
         model_dict = torch.load(model_path)
 
@@ -200,6 +211,36 @@ class DeepMet(object):
 
 
 class DeepMetTrainer(BaseTrainer):
+    """
+    Trainer for the :py:meth:`deepmet.core.DeepMet` model.
+
+    :param objective: One of "one-class" and "soft-boundary".
+
+    :param R: The radius of the hypersphere.
+
+    :param c: The centre of the hypersphere.
+
+    :param nu: The proportion of samples in the training set to be classified as outliers.
+
+    :param optimizer_name: optimisation method for training the network. Set to "amsgrad" to use the AMSGrad variant
+        of the adam optimisation algorithm.
+
+    :param lr: Learning rate of the optimisation process.
+
+    :param n_epochs: Number of epochs to be used in the training process.
+
+    :param lr_milestones: If specified, a multi-step learning rate decay can be used during training at the
+        specified epochs. The tuple is passed to the `milestones` parameter of
+        :py:meth:`torch.optim.lr_scheduler.MultiStepLR`.
+
+    :param batch_size: The number of training samples to be used in each batch.
+
+    :param weight_decay: The L2 penalty to be applied to weights during the training phase.
+
+    :param device: The device to be used to train the model. One of "cuda" or "cpu".
+
+    :param n_jobs_dataloader: The number of cpus to be utilised when loading the training and test sets.
+    """
 
     def __init__(self, objective, R, c, nu: float, optimizer_name: str = 'adam', lr: float = 0.001, n_epochs: int = 150,
                  lr_milestones: tuple = (), batch_size: int = 128, weight_decay: float = 1e-6, device: str = 'cuda',
@@ -228,6 +269,14 @@ class DeepMetTrainer(BaseTrainer):
         self.latent_visualisation = None
 
     def train(self, dataset: BaseADDataset, net: BaseNet):
+        """
+        Method for training the :py:meth:`deepmet.core.DeepMet` model.
+
+        :param dataset: Pytorch dataset class. May be loaded with :py:meth:`deepmet.datasets.load_training_dataset`.
+
+        :param net: The NN to be trained.
+        """
+
         logger = logging.getLogger()
 
         # Set device for network
@@ -303,6 +352,13 @@ class DeepMetTrainer(BaseTrainer):
         return net
 
     def test(self, dataset: BaseADDataset, net: BaseNet):
+        """
+        Method for testing the :py:meth:`deepmet.core.DeepMet` model.
+
+        :param dataset: Pytorch dataset class. May be loaded with :py:meth:`deepmet.datasets.load_testing_dataset`.
+
+        :param net: The NN to be tested.
+        """
         logger = logging.getLogger()
 
         # Set device for network
@@ -391,7 +447,17 @@ class DeepMetTrainer(BaseTrainer):
         self.latent_visualisation = latent_dims
 
     def init_center_c(self, train_loader: DataLoader, net: BaseNet, eps=0.1):
-        """Initialize hypersphere center c as the mean from an initial forward pass on the data."""
+        """
+        Initialize hypersphere center c as the mean from an initial forward pass on the data.
+
+        :param train_loader: Pytorch object for loading data.
+
+        :param net: The NN to be initialised.
+
+        :param eps: If the centre is too close to 0, it is set to +-eps. Else, zero units can be trivially matched with
+            zero weights.
+        """
+
         n_samples = 0
         c = torch.zeros(net.rep_dim, device=self.device)
 
@@ -415,6 +481,14 @@ class DeepMetTrainer(BaseTrainer):
 
 
 def get_radius(dist: torch.Tensor, nu: float):
-    """ Optimally solve for radius R via the (1-nu)-quantile of distances. """
+    """
+    Optimally solve for radius R via the (1-nu)-quantile of distances.
+
+    :param dist: A pytorch tensor.
+
+    :param nu: The proportion of samples in the training set to be classified as outliers.
+
+    :return: The value of the quantile.
+    """
 
     return np.quantile(np.sqrt(dist.clone().data.cpu().numpy()), 1 - nu)
