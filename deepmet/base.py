@@ -44,7 +44,6 @@
 import logging
 import numpy as np
 import torch.nn as nn
-from typing import Callable, Union
 from abc import ABC, abstractmethod
 from torch.utils.data import DataLoader
 
@@ -54,19 +53,18 @@ class BaseADDataset(ABC):
 
     def __init__(self, root: str):
         super().__init__()
-        self.root = root  # Root path to data
+        self.root = root
 
         self.n_classes = 2  # 0: normal, 1: outlier
-        self.normal_classes = None  # Tuple with original class labels that define the normal class
-        self.outlier_classes = None  # Tuple with original class labels that define the outlier class
+        self.normal_classes = None
+        self.outlier_classes = None
 
-        self.train_set = None  # Must be of type torch.auxiliary.data.Dataset
-        self.test_set = None  # Must be of type torch.auxiliary.data.Dataset
+        self.train_set = None
+        self.test_set = None
 
     @abstractmethod
-    def loaders(self, batch_size: int, shuffle_train=True, shuffle_test=False, num_workers: int = 0) -> (
-                DataLoader, DataLoader):
-        """ Implement data loaders of type torch.auxiliary.data.DataLoader for train_set and test_set. """
+    def loaders(self, batch_size: int, num_workers: int = 0) -> (DataLoader, DataLoader):
+        """ Implements data loaders of type torch.auxiliary.data.DataLoader for train_set and test_set. """
 
         pass
 
@@ -81,14 +79,10 @@ class BaseNet(nn.Module):
         super().__init__()
 
         self.logger = logging.getLogger(self.__class__.__name__)
-        self.rep_dim = None  # Representation dimensionality, i.e. dim of the last layer
+        self.rep_dim = None
 
     def forward(self, *input):
-        """
-        Forward pass logic
-
-        :return: Network output
-        """
+        """ Forward pass logic """
 
         raise NotImplementedError
 
@@ -106,7 +100,7 @@ class BaseTrainer(ABC):
     """ Trainer base class. """
 
     def __init__(self, optimizer_name: str, lr: float, n_epochs: int, lr_milestones: tuple, batch_size: int,
-                 weight_decay: float, device: str, n_jobs_dataloader: int, loss_function: Union[None, Callable]):
+                 weight_decay: float, device: str, n_jobs_dataloader: int):
         super().__init__()
 
         self.optimizer_name = optimizer_name
@@ -117,38 +111,29 @@ class BaseTrainer(ABC):
         self.weight_decay = weight_decay
         self.device = device
         self.n_jobs_dataloader = n_jobs_dataloader
-        self.loss_function = loss_function
 
     @abstractmethod
     def train(self, dataset: BaseADDataset, net: BaseNet) -> BaseNet:
-        """
-        Implement train method that trains the given network using the train_set of dataset.
-
-        :return: Trained net
-        """
+        """ Implements train method that trains the given network using the train_set of dataset. """
 
         pass
 
     @abstractmethod
     def test(self, dataset: BaseADDataset, net: BaseNet):
-        """ Implement test method that evaluates the test_set of dataset on the given network. """
+        """ Implements test method that evaluates the test_set of dataset on the given network. """
 
         pass
 
 
 class LoadableDataset(BaseADDataset):
-    """ Class for loading datasets into a usable format. """
+    """ Class for loading datasets into a useable format. """
 
     def __init__(self, root: str):
         super().__init__(root)
 
-    def loaders(self, batch_size: int, shuffle_train=True, shuffle_test=False, num_workers: int = 0) -> (
-                DataLoader, DataLoader):
+    def loaders(self, batch_size: int, num_workers: int = 0) -> (DataLoader, DataLoader):
 
-        train_loader = DataLoader(dataset=self.train_set, batch_size=batch_size, shuffle=shuffle_train,
-                                  num_workers=num_workers)
-
-        test_loader = DataLoader(dataset=self.test_set, batch_size=batch_size, shuffle=shuffle_test,
-                                 num_workers=num_workers)
+        train_loader = DataLoader(dataset=self.train_set, batch_size=batch_size, shuffle=False, num_workers=num_workers)
+        test_loader = DataLoader(dataset=self.test_set, batch_size=batch_size, shuffle=False, num_workers=num_workers)
 
         return train_loader, test_loader

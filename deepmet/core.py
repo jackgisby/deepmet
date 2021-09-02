@@ -55,15 +55,25 @@ from deepmet.base import BaseADDataset, BaseNet, BaseTrainer
 
 
 class DeepMet(object):
-    """ Class for the DeepSVDD method adapted for compound anomaly detection. """
+    """
+    Class for the DeepSVDD method adapted for compound anomaly detection.
+
+    :param objective: One of "one-class" and "soft-boundary".
+
+    :param nu: The proportion of samples in the training set to be classified as outliers.
+
+    :param in_features: The number of input features.
+    """
 
     def __init__(self, objective: str = 'one-class', nu: float = 0.1, rep_dim: int = 100, in_features: int = 2048):
-        """Inits DeepMet with one of the two objectives and hyperparameter nu."""
+        """ Constructor method. """
 
         assert objective in ('one-class', 'soft-boundary'), "Objective must be either 'one-class' or 'soft-boundary'."
         self.objective = objective
+
         assert (0 < nu) & (nu <= 1), "For hyperparameter nu, it must hold: 0 < nu <= 1."
         self.nu = nu
+
         self.R = 0.0  # Hypersphere radius R
         self.c = None  # Hypersphere center c
 
@@ -87,7 +97,11 @@ class DeepMet(object):
         self.visualisation = None
 
     def set_network(self, net_name):
-        """ Builds the neural network \\phi. """
+        """
+        Builds the neural network \\phi.
+
+        :param net_name: The name of the network architecture - see :py:meth:`deepmet.networks.build_network`.
+        """
 
         self.net_name = net_name
         self.net = build_network(net_name, self.rep_dim, self.in_features)
@@ -95,7 +109,30 @@ class DeepMet(object):
     def train(self, dataset: BaseADDataset, optimizer_name: str = 'adam', lr: float = 0.001, n_epochs: int = 50,
               lr_milestones: tuple = (), batch_size: int = 128, weight_decay: float = 1e-6, device: str = 'cuda',
               n_jobs_dataloader: int = 0):
-        """ Trains the DeepMet model on the training data. """
+        """
+        Trains the DeepMet model on the training data.
+
+        :param dataset: Pytorch dataset class. May be loaded with :py:meth:`deepmet.datasets.load_training_dataset`.
+
+        :param optimizer_name: optimisation method for training the network. Set to "amsgrad" to use the AMSGrad variant 
+            of the adam optimisation algorithm. 
+            
+        :param lr: Learning rate of the optimisation process.
+
+        :param n_epochs: Number of epochs to be used in the training process.
+
+        :param lr_milestones: If specified, a multi-step learning rate decay can be used during training at the
+            specified epochs. The tuple is passed to the `milestones` parameter of
+            :py:meth:`torch.optim.lr_scheduler.MultiStepLR`.
+
+        :param batch_size: The number of training samples to be used in each batch.
+
+        :param weight_decay: The L2 penalty to be applied to weights during the training phase.
+
+        :param device: The device to be used to train the model. One of "cuda" or "cpu".
+
+        :param n_jobs_dataloader: The number of cpus to be utilised when loading the training and test sets.
+        """
 
         self.optimizer_name = optimizer_name
         self.trainer = DeepMetTrainer(self.objective, self.R, self.c, self.nu, optimizer_name, lr=lr,
@@ -113,7 +150,15 @@ class DeepMet(object):
         self.results['c'] = self.c
 
     def test(self, dataset: BaseADDataset, device: str = 'cuda', n_jobs_dataloader: int = 0):
-        """ Tests the DeepMet model on the test data. """
+        """
+        Tests the DeepMet model on the test data.
+
+        :param device: The device to be used to train the model. One of "cuda" or "cpu".
+
+        :param n_jobs_dataloader: The number of cpus to be utilised when loading the training and test sets.
+
+        :param dataset: Pytorch dataset class. May be loaded with :py:meth:`deepmet.datasets.load_testing_dataset`.
+        """
 
         if self.trainer is None:
             self.trainer = DeepMetTrainer(self.objective, self.R, self.c, self.nu,
@@ -169,8 +214,7 @@ class DeepMetTrainer(BaseTrainer):
     def __init__(self, objective, R, c, nu: float, optimizer_name: str = 'adam', lr: float = 0.001, n_epochs: int = 150,
                  lr_milestones: tuple = (), batch_size: int = 128, weight_decay: float = 1e-6, device: str = 'cuda',
                  n_jobs_dataloader: int = 0):
-        super().__init__(optimizer_name, lr, n_epochs, lr_milestones, batch_size, weight_decay, device,
-                         n_jobs_dataloader, loss_function=None)
+        super().__init__(optimizer_name, lr, n_epochs, lr_milestones, batch_size, weight_decay, device, n_jobs_dataloader)
 
         assert objective in ('one-class', 'soft-boundary'), "Objective must be either 'one-class' or 'soft-boundary'."
         self.objective = objective
@@ -180,7 +224,7 @@ class DeepMetTrainer(BaseTrainer):
         self.c = torch.tensor(c, device=self.device) if c is not None else None
         self.nu = nu
 
-        # Optimization parameters
+        # optimisation parameters
         self.warm_up_n_epochs = 10  # number of training epochs for soft-boundary Deep SVDD before radius R gets updated
 
         # Results
