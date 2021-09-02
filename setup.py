@@ -7,7 +7,7 @@ def main():
     setuptools.setup(
         name="deepmet",
         version=deepmet.__version__,
-        long_description=open('README.md').read(),
+        long_description=open('README.rst').read(),
         url="https://github.com/computational-metabolomics/deepmet",
         license="GPLv3",
         platforms=['Windows, UNIX'],
