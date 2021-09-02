@@ -43,8 +43,7 @@
 
 import click
 
-from deepmet.workflows.training import train_likeness_scorer
-from deepmet.workflows.scoring import get_likeness_scores
+from deepmet.workflows import train_likeness_scorer, get_likeness_scores
 
 
 @click.command()

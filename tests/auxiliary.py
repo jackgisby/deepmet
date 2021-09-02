@@ -21,8 +21,8 @@
 import os
 import csv
 import tempfile
-from shutil import copytree
 import numpy as np
+from shutil import copytree
 
 
 def make_temp_results_dir():
@@ -31,7 +31,7 @@ def make_temp_results_dir():
 
     # create a copy of relevant data in the test's temporary folder
     copytree(
-        os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "data"),
+        os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "deepmet", "data"),
         os.path.join(temp_results_dir.name, "data")
     )
 

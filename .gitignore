@@ -107,6 +107,6 @@ Temporary Items
 .apdisk
 
 # Project-specific output folders
-data/mol_key_test
+deepmet/data/mol_key_test
 paper_results/
 tests/tmp*

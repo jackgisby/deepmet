@@ -17,17 +17,117 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with DeepMet.  If not, see <https://www.gnu.org/licenses/>.
+#
+# This file incorporates work covered by the following copyright and
+# permission notice:
+#
+#   Copyright (c) 2018 Lukas Ruff
+#
+#   Permission is hereby granted, free of charge, to any person obtaining a copy
+#   of this software and associated documentation files (the "Software"), to deal
+#   in the Software without restriction, including without limitation the rights
+#   to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+#   copies of the Software, and to permit persons to whom the Software is
+#   furnished to do so, subject to the following conditions:
+#
+#   The above copyright notice and this permission notice shall be included in all
+#   copies or substantial portions of the Software.
+#
+#   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+#   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+#   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+#   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+#   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+#   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+#   SOFTWARE.
 
+import os
 import csv
+import json
+import jpype
+import numpy as np
 import pandas as pd
 from rdkit import Chem, RDLogger
 from rdkit.Chem import MACCSkeys, AllChem
 
-from deepmet.utils.cdk import cdk_fingerprint
+import deepmet
+
+if not jpype.isJVMStarted():
+
+    cdk_path = os.path.join(deepmet.__path__[0], os.pardir, 'tools', 'CDK', 'cdk-2.2.jar')
+
+    jpype.startJVM(jpype.getDefaultJVMPath(), "-ea", "-Djava.class.path=%s" % cdk_path)
+    cdk = jpype.JPackage('org').openscience.cdk
+
+
+def cdk_parser_smiles(smi):
+    sp = cdk.smiles.SmilesParser(cdk.DefaultChemObjectBuilder.getInstance())
+    try:
+        mol = sp.parseSmiles(smi)
+    except:
+        raise IOError('invalid smiles input')
+    return mol
+
+
+def cdk_fingerprint(smi, fp_type="pubchem"):
+
+    if fp_type == 'estate':
+        nbit = 79
+    elif fp_type == 'pubchem':
+        nbit = 881
+    elif fp_type == 'klekota-roth':
+        nbit = 4860
+
+    _fingerprinters = {
+        "pubchem": cdk.fingerprint.PubchemFingerprinter(cdk.silent.SilentChemObjectBuilder.getInstance()),
+        "estate": cdk.fingerprint.EStateFingerprinter(),
+        "klekota-roth": cdk.fingerprint.KlekotaRothFingerprinter()
+    }
+
+    mol = cdk_parser_smiles(smi)
+    if fp_type in _fingerprinters:
+        fingerprinter = _fingerprinters[fp_type]
+    else:
+        raise IOError('invalid fingerprint type')
+
+    fp = fingerprinter.getBitFingerprint(mol).asBitSet()
+
+    bits = []
+    idx = fp.nextSetBit(0)
+
+    while idx >= 0:
+        bits.append(idx)
+        idx = fp.nextSetBit(idx + 1)
+
+    vec = np.zeros(nbit)
+    vec[bits] = 1
+
+    return vec.astype(int)
+
+
+class Config(object):
+    """ Base class for experimental setting/configuration. """
+
+    def __init__(self, settings):
+        self.settings = settings
+
+    def load_config(self, import_json):
+        """Load settings dict from import_json (path/filename.json) JSON-file."""
+
+        with open(import_json, 'r') as fp:
+            settings = json.load(fp)
+
+        for key, value in settings.items():
+            self.settings[key] = value
+
+    def save_config(self, export_json):
+        """Save settings dict to export_json (path/filename.json) JSON-file."""
+
+        with open(export_json, 'w') as fp:
+            json.dump(self.settings, fp)
 
 
 def get_mol_fingerprint(smiles, mol, method_name, method, nbit=1024):
-
     if "morgan" in method_name:
         fingerprint = method[0](mol, method[1], nBits=nbit)
 
@@ -56,7 +156,6 @@ def smiles_to_matrix(smiles, mol, fingerprint_methods):
 
 
 def get_fingerprint_methods():
-
     return {
         "morgan_1": [AllChem.GetMorganFingerprintAsBitVect, 1],
         "morgan_2": [AllChem.GetMorganFingerprintAsBitVect, 2],
@@ -73,20 +172,17 @@ def get_fingerprint_methods():
 
 
 def get_fingerprints_from_meta(meta_path, fingerprints_out_path):
-
     fingerprint_methods = get_fingerprint_methods()
 
     RDLogger.DisableLog('rdApp.*')
 
     with open(meta_path, "r", encoding="utf8") as meta_file, \
-         open(fingerprints_out_path, "w", newline="") as structure_fingerprint_matrix:
-
+            open(fingerprints_out_path, "w", newline="") as structure_fingerprint_matrix:
         # 0 - ID, 1 - smiles
         meta_csv = csv.reader(meta_file, delimiter=",")  # Input smiles
         structure_matrix_csv = csv.writer(structure_fingerprint_matrix)  # Output matrix
 
         for meta_row in meta_csv:
-
             mol = Chem.MolFromSmiles(meta_row[1])
             structure_matrix_csv.writerow(smiles_to_matrix(meta_row[1], mol, fingerprint_methods))
 
@@ -96,7 +192,6 @@ def get_fingerprints_from_meta(meta_path, fingerprints_out_path):
 def select_features(normal_fingerprints_path, normal_fingerprints_out_path,
                     non_normal_fingerprints_paths=None, non_normal_fingerprints_out_paths=None,
                     unbalanced=0.1):
-
     normal_fingerprints = pd.read_csv(normal_fingerprints_path, dtype=int, header=None, index_col=False)
 
     # Get inital dataset shape
@@ -117,7 +212,8 @@ def select_features(normal_fingerprints_path, normal_fingerprints_out_path,
         non_normal_fingerprints, non_normal_num_rows, normal_num_cols, non_normal_index = [], [], [], []
 
         for i in range(len(non_normal_fingerprints_paths)):
-            non_normal_fingerprints.append(pd.read_csv(non_normal_fingerprints_paths[i], dtype=int, header=None, index_col=False))
+            non_normal_fingerprints.append(
+                pd.read_csv(non_normal_fingerprints_paths[i], dtype=int, header=None, index_col=False))
 
             num_rows, num_cols = non_normal_fingerprints[i].shape
             non_normal_num_rows.append(num_rows)
@@ -165,19 +261,18 @@ def select_features(normal_fingerprints_path, normal_fingerprints_out_path,
 
     if non_normal_fingerprints_paths is not None:
         for i in range(len(non_normal_fingerprints_paths)):
-
             # Remove columns that are unbalanced in the normal dataset
             non_normal_fingerprints[i].drop(cols_to_remove, axis=1, inplace=True)
-    
+
             # Check no samples have been removed
             non_normal_num_rows_processed, non_normal_num_cols_processed = non_normal_fingerprints[i].shape
 
             assert non_normal_num_rows_processed == non_normal_num_rows[i]
             assert all(non_normal_fingerprints[i].index == non_normal_index[i])
-    
+
             # Check all the columns are the same for each dataset
             assert all(normal_fingerprints.columns == non_normal_fingerprints[i].columns)
-    
+
             # Save
             non_normal_fingerprints[i].to_csv(non_normal_fingerprints_out_paths[i], header=False, index=False)
 
@@ -185,7 +280,6 @@ def select_features(normal_fingerprints_path, normal_fingerprints_out_path,
 
 
 def drop_selected_features(fingerprints_path, fingerprints_out_path, cols_to_remove):
-
     normal_fingerprints = pd.read_csv(fingerprints_path, dtype=int, header=None, index_col=False)
 
     # Remove columns that are unbalanced

@@ -19,7 +19,7 @@ sys.path.insert(0, os.path.abspath('../../deepmet/base'))
 sys.path.insert(0, os.path.abspath('../../deepmet/core'))
 sys.path.insert(0, os.path.abspath('../../deepmet/datasets'))
 sys.path.insert(0, os.path.abspath('../../deepmet/networks'))
-sys.path.insert(0, os.path.abspath('../../deepmet/utils'))
+sys.path.insert(0, os.path.abspath('../../deepmet/auxiliary'))
 sys.path.insert(0, os.path.abspath('../../deepmet/workflows'))
 
 # -- Project information -----------------------------------------------------

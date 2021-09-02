@@ -22,7 +22,7 @@ import unittest
 import pandas as pd
 
 from tests.auxiliary import *
-from deepmet.workflows.scoring import get_likeness_scores
+from deepmet.workflows import get_likeness_scores
 
 
 class TrainModelTestCase(unittest.TestCase):

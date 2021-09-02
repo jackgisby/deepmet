@@ -41,11 +41,66 @@
 #   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 #   SOFTWARE.
 
-from abc import ABC, abstractmethod
+import logging
+import numpy as np
+import torch.nn as nn
 from typing import Callable, Union
+from abc import ABC, abstractmethod
+from torch.utils.data import DataLoader
 
-from deepmet.base.base_dataset import BaseADDataset
-from deepmet.base.base_net import BaseNet
+
+class BaseADDataset(ABC):
+    """ Anomaly detection dataset base class. """
+
+    def __init__(self, root: str):
+        super().__init__()
+        self.root = root  # Root path to data
+
+        self.n_classes = 2  # 0: normal, 1: outlier
+        self.normal_classes = None  # Tuple with original class labels that define the normal class
+        self.outlier_classes = None  # Tuple with original class labels that define the outlier class
+
+        self.train_set = None  # Must be of type torch.auxiliary.data.Dataset
+        self.test_set = None  # Must be of type torch.auxiliary.data.Dataset
+
+    @abstractmethod
+    def loaders(self, batch_size: int, shuffle_train=True, shuffle_test=False, num_workers: int = 0) -> (
+                DataLoader, DataLoader):
+        """ Implement data loaders of type torch.auxiliary.data.DataLoader for train_set and test_set. """
+
+        pass
+
+    def __repr__(self):
+        return self.__class__.__name__
+
+
+class BaseNet(nn.Module):
+    """ Base class for all neural networks. """
+
+    def __init__(self):
+        super().__init__()
+
+        self.logger = logging.getLogger(self.__class__.__name__)
+        self.rep_dim = None  # Representation dimensionality, i.e. dim of the last layer
+
+    def forward(self, *input):
+        """
+        Forward pass logic
+
+        :return: Network output
+        """
+
+        raise NotImplementedError
+
+    def summary(self):
+        """ Network summary. """
+
+        net_parameters = filter(lambda p: p.requires_grad, self.parameters())
+        params = sum([np.prod(p.size()) for p in net_parameters])
+
+        self.logger.info('Trainable parameters: {}'.format(params))
+        self.logger.info(self)
+
 
 class BaseTrainer(ABC):
     """ Trainer base class. """
@@ -79,3 +134,21 @@ class BaseTrainer(ABC):
         """ Implement test method that evaluates the test_set of dataset on the given network. """
 
         pass
+
+
+class LoadableDataset(BaseADDataset):
+    """ Class for loading datasets into a usable format. """
+
+    def __init__(self, root: str):
+        super().__init__(root)
+
+    def loaders(self, batch_size: int, shuffle_train=True, shuffle_test=False, num_workers: int = 0) -> (
+                DataLoader, DataLoader):
+
+        train_loader = DataLoader(dataset=self.train_set, batch_size=batch_size, shuffle=shuffle_train,
+                                  num_workers=num_workers)
+
+        test_loader = DataLoader(dataset=self.test_set, batch_size=batch_size, shuffle=shuffle_test,
+                                 num_workers=num_workers)
+
+        return train_loader, test_loader
