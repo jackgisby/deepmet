@@ -126,6 +126,11 @@ class TrainModelTestCase(unittest.TestCase):
 
     def test_trained_deep_met(self):
 
+        if os.name == "nt" and sys.version_info >= (3, 8):
+            places = 5
+        else:
+            places = 1
+
         # does the newly trained DeepMet model have the expected test results
         self.assertAlmostEqual(self.deep_met_model_fresh.results["test_loss"], 1.933105182647705, places=1)
 
