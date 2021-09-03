@@ -17,13 +17,13 @@ A deep one class model for the identification of endogenous metabolites.
 
 .. toctree::
    :maxdepth: 2
-   :caption: deepmet:
+   :caption: DeepMet:
 
-   deepmet.workflows
-   deepmet.core
-   deepmet.datasets
-   deepmet.networks
-   deepmet.auxiliary
+   workflows
+   core
+   datasets
+   networks
+   auxiliary
 
 .. |Build Status (Travis)| image:: https://img.shields.io/travis/computational-metabolomics/deepmet.svg?style=flat&maxAge=3600&label=Travis-CI
    :target: https://travis-ci.com/computational-metabolomics/deepmet

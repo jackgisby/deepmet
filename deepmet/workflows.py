@@ -264,6 +264,8 @@ def train_likeness_scorer(
         structures used for the test set. Any "non-normal" structures supplied will be reserved solely for use in
         the test set. Passed to the
         `test_split` argument of the :py:meth:`deepmet.datasets.load_training_dataset` function.
+
+    :return: A model of the class :py:meth:`deepmet.core.DeepMet`.
     """
 
     # Default device to 'cpu' if cuda is not available
