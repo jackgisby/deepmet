@@ -80,8 +80,8 @@ def get_likeness_scores(dataset_path, results_path, load_model=None, load_config
     if load_model is None:
         print("Model not given, using pre-trained DeepMet model and config")
 
-        load_model = os.path.join("", "data", "models", "deep_met_model.tar")
-        load_config = os.path.join("", "data", "models", "config.json")
+        load_model = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "deepmet", "data", "models", "deep_met_model.tar")
+        load_config = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "deepmet", "data", "models", "config.json")
 
     cfg = Config(locals().copy())
     cfg.load_config(import_json=load_config)
@@ -144,8 +144,7 @@ def train_single_model(cfg, dataset):
         logger.info('Set seed to %d.' % cfg.settings['seed'])
 
     # Initialize DeepMet model and set neural network \phi
-    deep_met_model = DeepMet(cfg.settings["objective"], cfg.settings["nu"], cfg.settings["rep_dim"],
-                             cfg.settings["in_features"])
+    deep_met_model = DeepMet(cfg.settings["objective"], cfg.settings["nu"], cfg.settings["rep_dim"], cfg.settings["in_features"])
     deep_met_model.set_network(cfg.settings["net_name"])
 
     # Log training details
@@ -275,8 +274,7 @@ def train_likeness_scorer(
 
     # If required, computes the fingerprints from the input smiles
     if normal_fingerprints_path is None:
-        normal_fingerprints_path = get_fingerprints_from_meta(normal_meta_path,
-                                                              os.path.join(results_path, "normal_fingerprints.csv"))
+        normal_fingerprints_path = get_fingerprints_from_meta(normal_meta_path, os.path.join(results_path, "normal_fingerprints.csv"))
 
     normal_fingerprints_out_path = os.path.join(results_path, "normal_fingerprints_processed.csv")
 
@@ -285,8 +283,7 @@ def train_likeness_scorer(
 
     else:
         if non_normal_fingerprints_path is None:
-            non_normal_fingerprints_path = get_fingerprints_from_meta(non_normal_meta_path, os.path.join(results_path,
-                                                                                                         "non_normal_fingerprints.csv"))
+            non_normal_fingerprints_path = get_fingerprints_from_meta(non_normal_meta_path, os.path.join(results_path, "non_normal_fingerprints.csv"))
 
         non_normal_fingerprints_out_path = os.path.join(results_path, "non_normal_fingerprints_processed.csv")
 
@@ -309,7 +306,7 @@ def train_likeness_scorer(
     logger.setLevel(logging.INFO)
     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
-    log_file = results_path + '/log.txt'
+    log_file = os.path.join(results_path, 'log.txt')
     file_handler = logging.FileHandler(log_file)
     file_handler.setLevel(logging.INFO)
     file_handler.setFormatter(formatter)

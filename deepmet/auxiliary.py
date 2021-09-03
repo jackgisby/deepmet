@@ -64,10 +64,12 @@ def cdk_parser_smiles(smi):
     """ Parse smiles using CDK. Adapted from: https://github.com/hcji/PyFingerprint """
 
     sp = cdk.smiles.SmilesParser(cdk.DefaultChemObjectBuilder.getInstance())
+
     try:
         mol = sp.parseSmiles(smi)
     except:
         raise IOError('invalid smiles input')
+
     return mol
 
 
@@ -88,6 +90,7 @@ def cdk_fingerprint(smi, fp_type="pubchem"):
     }
 
     mol = cdk_parser_smiles(smi)
+
     if fp_type in _fingerprinters:
         fingerprinter = _fingerprinters[fp_type]
     else:
