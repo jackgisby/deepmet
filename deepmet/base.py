@@ -82,7 +82,7 @@ class BaseNet(nn.Module):
         self.rep_dim = None
 
     def forward(self, *input):
-        """ Forward pass logic """
+        """ Forward pass logic. """
 
         raise NotImplementedError
 

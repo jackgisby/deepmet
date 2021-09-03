@@ -78,16 +78,17 @@ def main(normal_meta_path, results_path, train_model, non_normal_path, normal_fi
     models will also be metabolite-likeness scorers. However, the 'self' dataset used as input can be any class of
     compounds, allowing the training of any compound-likeness scorer.
 
-    If using a pre-trained model to carry out likeness scoring, the majority of arguments are ignored. The user must
-    specify:
-     - `dataset_path`
+    If using a pre-trained model to carry out likeness scoring, the majority of arguments are ignored. The arguments
+    that can be specified include the following.
+     - `normal_meta_path`
      - `results_path`
      - `train_model` (False)
-     - `load_model`
+     - `load_model` (unless using the pre-trained model stored with the package)
+     - `load_config` (unless using the pre-trained model stored with the package)
+     - `device`
 
-     Otherwise, if `train_model` is `False`, then the majority of arguments are relevant. For argument descriptions
-     and further detail see the CLI option help or the documentation for the `train_likeness_scorer` and
-     `get_likeness_scores` functions.
+     For argument descriptions and further detail see the CLI option help or the documentation for the
+     `train_likeness_scorer` and `get_likeness_scores` functions.
     """
 
     if train_model:

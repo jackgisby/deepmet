@@ -64,7 +64,9 @@ class DeepMet(object):
 
     :param nu: The proportion of samples in the training set to be classified as outliers.
 
-    :param in_features: The number of input features.
+    :param in_features: The number of features within the input dataset.
+
+    :param rep_dim: The number of dimensions of the representation layer.
     """
 
     def __init__(self, objective: str = 'one-class', nu: float = 0.1, rep_dim: int = 100, in_features: int = 2048):
@@ -116,7 +118,7 @@ class DeepMet(object):
 
         :param dataset: Pytorch dataset class. May be loaded with :py:meth:`deepmet.datasets.load_training_dataset`.
 
-        :param optimizer_name: optimisation method for training the network. Set to "amsgrad" to use the AMSGrad variant 
+        :param optimizer_name: Optimisation method for training the network. Set to "amsgrad" to use the AMSGrad variant
             of the adam optimisation algorithm. 
             
         :param lr: Learning rate of the optimisation process.
@@ -359,6 +361,7 @@ class DeepMetTrainer(BaseTrainer):
 
         :param net: The NN to be tested.
         """
+
         logger = logging.getLogger()
 
         # Set device for network

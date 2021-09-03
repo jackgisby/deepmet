@@ -51,6 +51,15 @@ from deepmet.base import LoadableDataset
 
 
 def unison_shuffled_copies(a, b):
+    """
+    Shuffle two datasets in unison, using :py:meth:`numpy.random.permutation`.
+
+    :param a: numpy vector or matrix
+
+    :param b: numpy vector or matrix
+
+    :return: A tuple containing a and b, each after shuffling.
+    """
 
     assert len(a) == len(b)
 
@@ -60,6 +69,17 @@ def unison_shuffled_copies(a, b):
 
 
 def get_data_from_csv(dataset_path, meta_path, shuffle=True):
+    """
+    Get fingerprints and metadata from CSV files.
+
+    :param dataset_path: The path of the input fingerprints, as a CSV file.
+
+    :param meta_path: The path of the input metadata, as a CSV file.
+
+    :param shuffle: Whether to shuffle the input fingerprints and labels.
+
+    :return: A tuple containing the loaded fingerprints and metadata as a numpy matrix and vector, respectively.
+    """
 
     if not os.path.exists(dataset_path):
         raise FileNotFoundError
@@ -78,7 +98,37 @@ def get_data_from_csv(dataset_path, meta_path, shuffle=True):
 
 def load_training_dataset(normal_dataset_path, normal_meta_path, non_normal_dataset_path=None,
                           non_normal_dataset_meta_path=None, seed=1, validation_split=0.8, test_split=0.9):
-    """ Loads the dataset. """
+    """
+    Gets pytorch dataset classes for training and testing. A set of "normal" compounds must be supplied for use as a
+    training dataset. Some of these structures must be reserved for the validation dataset and some may also be used
+    in the test set. A comparator group of "non-normal" structures can also be provided - although these will be solely
+    reserved for testing purposes and will not be involved in the training or validation of the model.
+
+    :param normal_dataset_path: Path to the fingerprints of the "normal" structures, as a CSV file.
+
+    :param normal_meta_path: Path to the metadata for the "normal" structures, as a CSV file.
+
+    :param non_normal_dataset_path: Optional, path to the fingerprints of the "non-normal" structures, as a CSV file.
+        The "non-normal" structures are solely reserved for the test set - they are not used in training or validation.
+
+    :param non_normal_dataset_meta_path: Must be given if `non_normal_dataset_path` is given. Path to the metadata of
+        the "non-normal" structures, as a CSV file.
+
+    :param seed: Random seed to ensure dataset shuffling is consistent. If set to -1, the seed will not be set.
+
+    :param validation_split: Proportion of the "normal" dataset to be used as training data.
+
+    :param test_split: If None, 1 - `validation_split` will be the proportion of "normal" data used for the validation
+        set and there will be no normal structures in the test set. Else, `test_split - validation_split" will be the
+        proportion of data used for the validation set and `1.0 - test_split` will be the proportion of normal
+        structures used for the test set. Any "non-normal" structures supplied will be reserved solely for use in
+        the test set.
+
+    :return: Tuple containing:
+     - A :py:meth:`deepmet.datasets.LoadableMolKeyDataset` object containing the training set and the test set.
+     - Metadata for the training, validation and test sets.
+     - A :py:meth:`deepmet.datasets.LoadableMolKeyDataset` object containing the training set and the validation set.
+    """
     
     if seed != -1:
         random.seed(seed)
@@ -119,17 +169,32 @@ def load_training_dataset(normal_dataset_path, normal_meta_path, non_normal_data
     return full_dataset, labels, val_dataset
 
 
-def load_testing_dataset(normal_dataset_path, normal_meta_path):
+def load_testing_dataset(input_dataset_path, input_meta_path):
+    """
+    Load a test set in the absence of training data.
+    
+    :param input_dataset_path: Path to the fingerprints of the input structures, as a CSV file.
 
-    x_data, labels = get_data_from_csv(normal_dataset_path, normal_meta_path, shuffle=False)
+    :param input_meta_path: Path to the metadata for the input structures, as a CSV file.
+
+    :return: A tuple containing:
+     - A :py:meth:`deepmet.datasets.LoadableMolKeyDataset` object containing the test set.
+     - Metadata for the training, validation and test sets.
+    """
+
+    x_data, labels = get_data_from_csv(input_dataset_path, input_meta_path, shuffle=False)
     num_rows, num_cols = x_data.shape
 
-    full_dataset = LoadableMolKeyDataset(root=normal_dataset_path, data=x_data, labels=np.zeros((num_rows, 1)))
+    full_dataset = LoadableMolKeyDataset(root=input_dataset_path, data=x_data, labels=np.zeros((num_rows, 1)))
 
     return full_dataset, labels
 
 
 class LoadableMolKeyDataset(LoadableDataset):
+    """
+    A loadable pytorch dataset. Can contain a test and training set - the test set may be used as a test or validation
+    set.
+    """
 
     def __init__(self, root: str, train_idx=None, test_idx=None, data=None, labels=None):
         super().__init__(root)
@@ -146,6 +211,8 @@ class LoadableMolKeyDataset(LoadableDataset):
 
 
 class MolKeyDataset(Dataset):
+    """
+    A pytorch dataset representing a training, validation or test set."""
 
     def __init__(self, root, train, data=None, labels=None):
         super(MolKeyDataset, self).__init__()
