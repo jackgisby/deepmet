@@ -221,7 +221,7 @@ def get_fingerprint_methods():
         "rdk": Chem.RDKFingerprint,
         "layered": Chem.LayeredFingerprint,
         "pattern": Chem.PatternFingerprint,
-        "klekota_roth": "klekota-roth",
+        "klekota-roth": "klekota-roth",
         "pubchem": "pubchem",
         "estate": "estate",
         "maccs": MACCSkeys.GenMACCSKeys
