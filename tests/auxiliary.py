@@ -26,6 +26,11 @@ from shutil import copytree
 
 
 def make_temp_results_dir():
+    """
+    Make a temporary directory to store test results, allowing for easy cleanup post-testing.
+
+    :return: Path of the temporary directory.
+    """
 
     temp_results_dir = tempfile.TemporaryDirectory(dir=os.path.dirname(os.path.realpath(__file__)))
 
@@ -39,6 +44,17 @@ def make_temp_results_dir():
 
 
 def get_meta_subset(full_meta_path, reduced_meta_path, sample_size=200):
+    """
+    Get a subset of the lines of a CSV file.
+
+    :param full_meta_path: The path to a set of metadata of which we require a subset.
+
+    :param reduced_meta_path: The path at which to save the reduced metadata, as a CSV file.
+
+    :param sample_size: The number of rows to keep.
+
+    :return: The path of a CSV file containing the reduced metadata.
+    """
 
     with open(full_meta_path, "r", encoding="utf8") as full_meta_file:
         full_meta_csv = csv.reader(full_meta_file, delimiter=",")
@@ -61,20 +77,31 @@ def get_meta_subset(full_meta_path, reduced_meta_path, sample_size=200):
     return reduced_meta_path
 
 
-def get_normal_non_normal_subsets(test_results_path, seed=1):
+def get_normal_non_normal_subsets(test_results_path, seed=1, normal_sample_size=500, non_normal_sample_size=50):
+    """
+    Get a subset of the endogenous metabolites in HMDB and structures in the ZINC12 database.
+
+    :param test_results_path: The directory at which to save results.
+
+    :param seed: The seed used to randomly select a subset of compounds.
+
+    :param normal_sample_size: The number of normal compounds (HMDB) to be kept.
+
+    :param non_normal_sample_size: The number of non-normal compounds (ZINC12) to be kept.
+    """
 
     np.random.seed(seed)
     reduced_normal_meta_path = get_meta_subset(
         os.path.join(test_results_path, "data", "test_set", "hmdb_meta.csv"),
         os.path.join(test_results_path, "normal_meta.csv"),
-        sample_size=500
+        sample_size=normal_sample_size
     )
 
     np.random.seed(seed)
     reduced_non_normal_meta_path = get_meta_subset(
         os.path.join(test_results_path, "data", "test_set", "zinc_meta.csv"),
         os.path.join(test_results_path, "non_normal_meta.csv"),
-        sample_size=50
+        sample_size=non_normal_sample_size
     )
 
     return reduced_normal_meta_path, reduced_non_normal_meta_path
