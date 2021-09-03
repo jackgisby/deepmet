@@ -201,8 +201,6 @@ def smiles_to_matrix(smiles, mol, fingerprint_methods):
     for fingerprint_method in fingerprint_methods.keys():
         fingerprint += get_mol_fingerprint(smiles, mol, fingerprint_method, fingerprint_methods[fingerprint_method])
 
-    assert len(fingerprint) == 13155
-
     return fingerprint
 
 
