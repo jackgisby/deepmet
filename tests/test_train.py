@@ -80,7 +80,7 @@ class TrainModelTestCase(unittest.TestCase):
     def test_trained_deep_met(self):
 
         # does the newly trained DeepMet model have the expected test results
-        self.assertAlmostEqual(self.deep_met_model_fresh.results["test_loss"], 1.9605159521102906, places=1)
+        self.assertTrue(0.5 < self.deep_met_model_fresh.results["test_loss"] < 2)
 
     def test_rescored_deep_met(self):
 
