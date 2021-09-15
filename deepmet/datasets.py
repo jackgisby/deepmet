@@ -212,7 +212,9 @@ class LoadableMolKeyDataset(LoadableDataset):
 
 class MolKeyDataset(Dataset):
     """
-    A pytorch dataset representing a training, validation or test set."""
+    A pytorch dataset representing a training, validation or test set.
+
+    """
 
     def __init__(self, root, train, data=None, labels=None):
         super(MolKeyDataset, self).__init__()

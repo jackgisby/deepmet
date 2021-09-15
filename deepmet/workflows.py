@@ -53,7 +53,8 @@ from deepmet.auxiliary import Config
 from deepmet.core import DeepMet
 
 
-def get_likeness_scores(dataset_path, results_path, load_model=None, load_config=None, device="cpu"):
+def get_likeness_scores(dataset_path, results_path, load_model=None, load_config=None, input_fingerprints_path=None,
+                        device="cpu"):
     """
     Use a saved DeepMet model to score new molecules. You can load a custom model or use the trained model included
     as part of the package.
@@ -68,6 +69,10 @@ def get_likeness_scores(dataset_path, results_path, load_model=None, load_config
 
     :param load_config: A json file specifying the configuration used to train the model. Only used if `load_model` is
         not None.
+
+    :param input_fingerprints_path: If fingerprints have already been generated from the molecular SMILES strings,
+        the path to the CSV file can be given to skip fingerprint generation and/or feature selection. If this argument
+        is None, these will be generated from the data at `dataset_path`.
 
     :param device: The device to be used to test the input observations. One of "cuda" or "cpu".
 
@@ -92,7 +97,9 @@ def get_likeness_scores(dataset_path, results_path, load_model=None, load_config
         device = 'cpu'
 
     # If required, computes the fingerprints from the input smiles
-    input_fingerprints_path = get_fingerprints_from_meta(dataset_path, os.path.join(results_path, "input_fingerprints.csv"))
+    if input_fingerprints_path is None:
+        input_fingerprints_path = get_fingerprints_from_meta(dataset_path, os.path.join(results_path, "input_fingerprints.csv"))
+
     input_fingerprints_out_path = os.path.join(results_path, "input_fingerprints_processed.csv")
 
     # Filter features

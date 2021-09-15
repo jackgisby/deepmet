@@ -85,6 +85,7 @@ def main(normal_meta_path, results_path, train_model, non_normal_path, normal_fi
      - `train_model` (False)
      - `load_model` (unless using the pre-trained model stored with the package)
      - `load_config` (unless using the pre-trained model stored with the package)
+     - 'normal_fingerprints_path` (optional: path of pre-calculated fingerprints)
      - `device`
 
      For argument descriptions and further detail see the CLI option help or the documentation for the
@@ -103,7 +104,7 @@ def main(normal_meta_path, results_path, train_model, non_normal_path, normal_fi
 
     else:
         get_likeness_scores(dataset_path=normal_meta_path, results_path=results_path, load_model=load_model,
-                            load_config=load_config, device=device)
+                            load_config=load_config, device=device, input_fingerprints_path=normal_fingerprints_path)
 
 
 if __name__ == "__main__":
