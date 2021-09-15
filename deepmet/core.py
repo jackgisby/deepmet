@@ -416,8 +416,9 @@ class DeepMetTrainer(BaseTrainer):
         try:
             self.test_auc = roc_auc_score(labels, scores)
             logger.info('Test set AUC: {:.2f}%'.format(100. * self.test_auc))
+
         except ValueError:
-            print("Only one class present in y_true. ROC AUC score is not defined in that case.")
+            self.test_auc = None
 
         logger.info('Finished testing.')
 
