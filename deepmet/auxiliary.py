@@ -50,66 +50,6 @@ import pandas as pd
 from rdkit import Chem, RDLogger
 from rdkit.Chem import MACCSkeys, AllChem
 
-import deepmet
-
-if not jpype.isJVMStarted():
-
-    cdk_path = os.path.join(deepmet.__path__[0], os.pardir, 'tools', 'CDK', 'cdk-2.2.jar')
-
-    jpype.startJVM(jpype.getDefaultJVMPath(), "-ea", "-Djava.class.path=%s" % cdk_path)
-    cdk = jpype.JPackage('org').openscience.cdk
-
-
-def cdk_parser_smiles(smi):
-    """ Parse smiles using CDK. Adapted from: https://github.com/hcji/PyFingerprint """
-
-    sp = cdk.smiles.SmilesParser(cdk.DefaultChemObjectBuilder.getInstance())
-
-    try:
-        mol = sp.parseSmiles(smi)
-    except:
-        raise IOError('invalid smiles input')
-
-    return mol
-
-
-def cdk_fingerprint(smi, fp_type="pubchem"):
-    """ Get CDK fingerprints. Adapted from: https://github.com/hcji/PyFingerprint """
-
-    if fp_type == 'estate':
-        nbit = 79
-    elif fp_type == 'pubchem':
-        nbit = 881
-    elif fp_type == 'klekota-roth':
-        nbit = 4860
-
-    _fingerprinters = {
-        "pubchem": cdk.fingerprint.PubchemFingerprinter(cdk.silent.SilentChemObjectBuilder.getInstance()),
-        "estate": cdk.fingerprint.EStateFingerprinter(),
-        "klekota-roth": cdk.fingerprint.KlekotaRothFingerprinter()
-    }
-
-    mol = cdk_parser_smiles(smi)
-
-    if fp_type in _fingerprinters:
-        fingerprinter = _fingerprinters[fp_type]
-    else:
-        raise IOError('invalid fingerprint type')
-
-    fp = fingerprinter.getBitFingerprint(mol).asBitSet()
-
-    bits = []
-    idx = fp.nextSetBit(0)
-
-    while idx >= 0:
-        bits.append(idx)
-        idx = fp.nextSetBit(idx + 1)
-
-    vec = np.zeros(nbit)
-    vec[bits] = 1
-
-    return vec.astype(int)
-
 
 class Config(object):
     """
@@ -148,7 +88,68 @@ class Config(object):
             json.dump(self.settings, fp)
 
 
-def get_mol_fingerprint(smiles, mol, method_name, method, nbit=1024):
+def start_jpype():
+    """
+    Start `jpype` process for interface with the CDK jar executable.
+
+    :return: Gateway to CDK java class.
+    """
+
+    if not jpype.isJVMStarted():
+
+        cdk_path = os.path.join(os.environ["CONDA_PREFIX"], "share", "java", "cdk.jar")
+
+        jpype.startJVM(jpype.getDefaultJVMPath(), "-ea", "-Djava.class.path=%s" % cdk_path)
+
+    return jpype.JPackage('org').openscience.cdk
+
+
+def cdk_fingerprint(smi, cdk, fp_type="pubchem"):
+    """
+    Get CDK fingerprints.
+
+    :param smi: SMILES string representing a molecule to be converted into a fingerprint.
+
+    :param cdk: Gateway to CDK java class, as returned :py:meth:`deepmet.auxiliary.start_jpype`.
+
+    :param fp_type: Fingerprint to get from CDK. One of `estate`, `pubchem` or `klekota-roth`.
+
+    :return: A bit-based fingerprint as a list.
+    """
+
+    smiles_parser = cdk.smiles.SmilesParser(cdk.DefaultChemObjectBuilder.getInstance())
+
+    if fp_type == "estate":
+        nbit = 79
+        fingerprinter = cdk.fingerprint.EStateFingerprinter()
+
+    elif fp_type == "pubchem":
+        nbit = 881
+        fingerprinter = cdk.fingerprint.PubchemFingerprinter(cdk.silent.SilentChemObjectBuilder.getInstance())
+
+    elif fp_type == "klekota-roth":
+        nbit = 4860
+        fingerprinter = cdk.fingerprint.KlekotaRothFingerprinter()
+
+    mol = smiles_parser.parseSmiles(smi)
+
+    fingerprint = fingerprinter.getBitFingerprint(mol).asBitSet()
+
+    # convert the fingerprint bits to a bit vector
+    bits = []
+    idx = fingerprint.nextSetBit(0)
+
+    while idx >= 0:
+        bits.append(idx)
+        idx = fingerprint.nextSetBit(idx + 1)
+
+    bit_vec = np.zeros(nbit)
+    bit_vec[bits] = 1
+
+    return bit_vec.astype(int)
+
+
+def get_mol_fingerprint(smiles, mol, method_name, method, cdk, nbit=1024):
     """
     Get molecular fingerprint via a set of different methods. :py:meth:`deepmet:auxiliary:get_fingerprint_methods` can
     be used to generate a dictionary, the keys of which refer to possible values of `method_name` and values which
@@ -168,6 +169,8 @@ def get_mol_fingerprint(smiles, mol, method_name, method, nbit=1024):
     :param nbit: The size of the fingerprint to be generated. Does not apply to fixed length fingerprints - including
         morgan, maccs or mol_descriptors fingerprint methods.
 
+    :param cdk: Gateway to CDK java class, as returned :py:meth:`deepmet.auxiliary.start_jpype`.
+
     :return: A bit-based fingerprint as a list.
     """
 
@@ -175,7 +178,7 @@ def get_mol_fingerprint(smiles, mol, method_name, method, nbit=1024):
         fingerprint = method[0](mol, method[1], nBits=nbit)
 
     elif method_name in ("estate", "pubchem", "klekota-roth"):
-        fingerprint = list(cdk_fingerprint(smiles, method_name))
+        fingerprint = list(cdk_fingerprint(smiles, cdk, method_name))
 
     elif method_name in ("maccs", "mol_descriptors"):
         fingerprint = method(mol)
@@ -200,9 +203,11 @@ def smiles_to_matrix(smiles, mol, fingerprint_methods):
     :return: A set of concatenated bit-based fingerprints as a list.
     """
 
+    cdk = start_jpype()
+
     fingerprint = []
     for fingerprint_method in fingerprint_methods.keys():
-        fingerprint += get_mol_fingerprint(smiles, mol, fingerprint_method, fingerprint_methods[fingerprint_method])
+        fingerprint += get_mol_fingerprint(smiles, mol, fingerprint_method, fingerprint_methods[fingerprint_method], cdk)
 
     return fingerprint
 
