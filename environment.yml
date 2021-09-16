@@ -33,3 +33,4 @@ dependencies:
   - jpype1=1.2.1
   - pyod=0.9.0
   - jupyter
+  - cdk
