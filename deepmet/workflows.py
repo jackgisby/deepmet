@@ -54,7 +54,7 @@ from deepmet.core import DeepMet
 
 
 def get_likeness_scores(dataset_path, results_path, load_model=None, load_config=None, input_fingerprints_path=None,
-                        device="cpu"):
+                        device="cpu", filter_features=True):
     """
     Use a saved DeepMet model to score new molecules. You can load a custom model or use the trained model included
     as part of the package.
@@ -75,6 +75,9 @@ def get_likeness_scores(dataset_path, results_path, load_model=None, load_config
         is None, these will be generated from the data at `dataset_path`.
 
     :param device: The device to be used to test the input observations. One of "cuda" or "cpu".
+
+    :param filter_features: If True, will remove features based on the previous feature selection performed and saved
+        in the json file at `load_config`.
 
     :return: A list of tuples - these tuples contain:
      - The compound IDs
@@ -102,12 +105,12 @@ def get_likeness_scores(dataset_path, results_path, load_model=None, load_config
 
     input_fingerprints_out_path = os.path.join(results_path, "input_fingerprints_processed.csv")
 
-    # Filter features
-    input_fingerprints_path = drop_selected_features(
-        fingerprints_path=input_fingerprints_path,
-        fingerprints_out_path=input_fingerprints_out_path,
-        cols_to_remove=cfg.settings["selected_features"]
-    )
+    if filter_features:
+        input_fingerprints_path = drop_selected_features(
+            fingerprints_path=input_fingerprints_path,
+            fingerprints_out_path=input_fingerprints_out_path,
+            cols_to_remove=cfg.settings["selected_features"]
+        )
 
     # Load data
     dataset, dataset_labels = load_testing_dataset(
