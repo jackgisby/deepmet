@@ -359,10 +359,11 @@ def train_likeness_scorer(
     # Train the model (and estimate loss on the 'normal' validation set)
     deep_met_model = train_single_model(cfg, validation_dataset)
 
-    # Test using separate test dataset (that ideally includes a set of 'non-normal' compounds)
-    deep_met_model.test(dataset, device=device)
+    if non_normal_meta_path is not None:
+        # Test using separate test dataset (that ideally includes a set of 'non-normal' compounds)
+        deep_met_model.test(dataset, device=device)
 
-    logger.info('The AUC on the test dataset is: %s' % str(deep_met_model.results["test_auc"]))
+        logger.info('The AUC on the test dataset is: %s' % str(deep_met_model.results["test_auc"]))
 
     # close connection to log file
     logger.removeHandler(file_handler)
