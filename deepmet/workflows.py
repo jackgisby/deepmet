@@ -305,7 +305,8 @@ def train_likeness_scorer(
         non_normal_fingerprints_out_paths=non_normal_fingerprints_out_path
     )
 
-    non_normal_fingerprints_path = non_normal_fingerprints_paths[0]
+    if non_normal_meta_path is not None:
+        non_normal_fingerprints_path = non_normal_fingerprints_paths[0]
 
     # Get configuration
     cfg = Config(locals().copy())
