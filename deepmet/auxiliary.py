@@ -189,7 +189,7 @@ def get_mol_fingerprint(smiles, mol, method_name, method, cdk, nbit=1024):
     return fingerprint
 
 
-def smiles_to_matrix(smiles, mol, fingerprint_methods):
+def smiles_to_matrix(smiles, mol, fingerprint_methods=None):
     """
     Get the final matrix of fingerprints from the smiles
 
@@ -198,10 +198,14 @@ def smiles_to_matrix(smiles, mol, fingerprint_methods):
     :param mol: A :py:meth:`rdkit.Chem.Mol` object calculated from the input `smiles` string.
 
     :param fingerprint_methods: A dictionary describing the fingerprint methods to be used. Should be a subset of
-        the dictionary created by :py:meth:`deepmet:auxiliary:get_fingerprint_methods`.
+        the dictionary created by :py:meth:`deepmet:auxiliary:get_fingerprint_methods` - if `fingerprint_methods` is
+        `None`, then the entire set of fingerprints will be used by default.
 
     :return: A set of concatenated bit-based fingerprints as a list.
     """
+
+    if fingerprint_methods is None:
+        fingerprint_methods = get_fingerprint_methods()
 
     cdk = start_jpype()
 
