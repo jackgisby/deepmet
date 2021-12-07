@@ -68,7 +68,7 @@ def unison_shuffled_copies(a, b):
     return a[p], b[p]
 
 
-def get_data_from_csv(dataset_path, meta_path, shuffle=True):
+def get_data_from_csv(dataset_path, meta_path, shuffle=True, add_labels=None):
     """
     Get fingerprints and metadata from CSV files.
 
@@ -77,6 +77,10 @@ def get_data_from_csv(dataset_path, meta_path, shuffle=True):
     :param meta_path: The path of the input metadata, as a CSV file.
 
     :param shuffle: Whether to shuffle the input fingerprints and labels.
+
+    :param add_labels: If None, the labels present in column three of the file at `meta_path` will be used as labels.
+        Else, `add_labels` should be a number, where 0 represents a "normal" class and any other positive integer
+        represents a "non-normal" class.
 
     :return: A tuple containing the loaded fingerprints and metadata as a numpy matrix and vector, respectively.
     """
@@ -89,6 +93,25 @@ def get_data_from_csv(dataset_path, meta_path, shuffle=True):
 
     self_x_data = np.loadtxt(dataset_path, delimiter=",", comments=None)
     self_labels = np.loadtxt(meta_path, delimiter=",", dtype=str, comments=None)
+
+    num_rows, num_cols = self_labels.shape
+
+    if add_labels is not None or num_cols < 3:
+
+        if num_cols == 3:
+            extra_column = np.ones(num_rows, dtype=np.int)
+        else:
+            extra_column = np.ones((num_rows, 1), dtype=np.int)
+
+        if add_labels is not None:
+            extra_column *= add_labels
+
+        if num_cols == 3:
+            self_labels[:, 2] = extra_column
+
+        else:
+            assert num_cols == 2
+            self_labels = np.append(self_labels, extra_column, axis=1)
 
     if shuffle:
         return unison_shuffled_copies(self_x_data, self_labels)
@@ -134,7 +157,7 @@ def load_training_dataset(normal_dataset_path, normal_meta_path, non_normal_data
         random.seed(seed)
         np.random.seed(seed)
 
-    x_data, labels = get_data_from_csv(normal_dataset_path, normal_meta_path)
+    x_data, labels = get_data_from_csv(normal_dataset_path, normal_meta_path, add_labels=0)
 
     num_rows, num_cols = x_data.shape
     train_val_split_index = floor(num_rows * validation_split)
@@ -149,7 +172,7 @@ def load_training_dataset(normal_dataset_path, normal_meta_path, non_normal_data
 
     if non_normal_dataset_path is not None:
 
-        other_x_data, other_labels = get_data_from_csv(non_normal_dataset_path, non_normal_dataset_meta_path, shuffle=False)
+        other_x_data, other_labels = get_data_from_csv(non_normal_dataset_path, non_normal_dataset_meta_path, add_labels=1, shuffle=False)
 
         x_data = np.concatenate([x_data, other_x_data])
         labels = np.concatenate([labels, other_labels])
