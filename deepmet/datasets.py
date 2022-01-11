@@ -177,6 +177,8 @@ def load_training_dataset(normal_dataset_path, normal_meta_path, non_normal_data
         x_data = np.concatenate([x_data, other_x_data])
         labels = np.concatenate([labels, other_labels])
 
+        assert num_cols == other_x_data.shape[1]
+
     num_rows, num_cols = x_data.shape
     test_index = range(val_test_split_index, num_rows)
 

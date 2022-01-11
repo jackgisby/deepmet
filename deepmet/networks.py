@@ -132,7 +132,7 @@ class CocrystalTransformer(BaseNet):
         x = torch.split(x, self.in_features, dim=1)
         x = torch.stack(x).transpose(0, 1)
 
-        return self.seq(x).squeeze()
+        return self.seq(x).squeeze(dim=1)
 
 
 class MAB(nn.Module):
