@@ -201,7 +201,8 @@ def train_likeness_scorer(
         batch_size=2000,
         weight_decay=1e-5,
         validation_split=0.8,
-        test_split=0.9
+        test_split=0.9,
+        filter_features=False
 ):
     """
     Train a DeepMet model based only on the 'normal' structures specified. 'non-normal' structures can be supplied
@@ -298,12 +299,16 @@ def train_likeness_scorer(
         non_normal_fingerprints_out_path = os.path.join(results_path, "non_normal_fingerprints_processed.csv")
 
     # Filter features if necessary
-    normal_fingerprints_path, non_normal_fingerprints_paths, selected_features = select_features(
-        normal_fingerprints_path=normal_fingerprints_path,
-        normal_fingerprints_out_path=normal_fingerprints_out_path,
-        non_normal_fingerprints_paths=non_normal_fingerprints_path,
-        non_normal_fingerprints_out_paths=non_normal_fingerprints_out_path
-    )
+    if filter_features:
+        normal_fingerprints_path, non_normal_fingerprints_paths, selected_features = select_features(
+            normal_fingerprints_path=normal_fingerprints_path,
+            normal_fingerprints_out_path=normal_fingerprints_out_path,
+            non_normal_fingerprints_paths=non_normal_fingerprints_path,
+            non_normal_fingerprints_out_paths=non_normal_fingerprints_out_path
+        )
+
+    else:
+        non_normal_fingerprints_paths = [non_normal_fingerprints_path]
 
     if non_normal_meta_path is not None:
         non_normal_fingerprints_path = non_normal_fingerprints_paths[0]
