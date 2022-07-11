@@ -5,32 +5,13 @@ channels:
   - pytorch
   - conda-forge
 dependencies:
-  - requests
-  - numpy
-  - scipy
+  - python=3.8
   - scikit-learn=0.24.2
-  - certifi
-  - chardet
-  - Click
-  - cloudpickle
-  - cycler
-  - idna
-  - kiwisolver
-  - matplotlib
-  - pandas
-  - Pillow
-  - pyparsing
-  - python-dateutil
-  - pytz
-  - six
   - pytorch=1.7.0
   - torchvision=0.8.1
   - torchaudio=0.7.0
-  - tqdm
-  - ujson
-  - urllib3
-  - rdkit
   - jpype1=1.2.1
   - pyod=0.9.0
-  - jupyter
-  - cdk
+  - Click=7.1.2
+  - rdkit=2022.03.4
+  - cdk=2.5

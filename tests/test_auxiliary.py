@@ -20,7 +20,7 @@
 
 import unittest
 
-from tests.auxiliary import *
+from tests.utils import *
 from deepmet.auxiliary import *
 
 
@@ -62,7 +62,9 @@ class TrainModelTestCase(unittest.TestCase):
         self.assertEqual(initialised_with_dict_cfg.settings, re_loaded_cfg.settings)
 
         # check config contents are as expected
+        self.assertEqual(len(loaded_cfg.settings["selected_features"]), 10355)
         del loaded_cfg.settings["selected_features"]
+
         self.assertEqual(loaded_cfg.settings, {'net_name': 'cocrystal_transformer', 'objective': 'one-class', 'nu': 0.1, 'rep_dim': 200, 'seed': 1, 'optimizer_name': 'amsgrad', 'lr': 0.000155986, 'n_epochs': 20, 'lr_milestones': [], 'batch_size': 2000, 'weight_decay': 1e-05, 'pretrain': False, 'in_features': 2800, 'device': 'cpu'})
 
     def test_molecular_fingerprints(self):

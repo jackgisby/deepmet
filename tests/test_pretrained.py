@@ -21,7 +21,7 @@
 import unittest
 import pandas as pd
 
-from tests.auxiliary import *
+from tests.utils import *
 from deepmet.workflows import get_likeness_scores
 
 

@@ -63,7 +63,7 @@ from deepmet.workflows import train_likeness_scorer, get_likeness_scores
 @click.option("--optimizer_name", type=click.Choice(["adam", "amsgrad"]), default="adam", help="Name of the optimizer to use for Deep SVDD network training.")
 @click.option("--lr", type=float, default=0.0001, help="Initial learning rate for Deep SVDD network training. Default=0.001")
 @click.option("--n_epochs", type=int, default=20, help="Number of epochs to train.")
-@click.option("--lr_milestones", type=int, default=0, multiple=True, help="Lr scheduler milestones at which lr is multiplied by 0.1. Can be multiple and must be increasing.")
+@click.option("--lr_milestones", type=int, default=tuple(), multiple=True, help="Lr scheduler milestones at which lr is multiplied by 0.1. Can be multiple and must be increasing.")
 @click.option("--batch_size", type=int, default=2000, help="Batch size for mini-batch training.")
 @click.option("--weight_decay", type=float, default=1e-5, help="Weight decay (L2 penalty) hyperparameter for Deep SVDD objective.")
 @click.option("--isomeric_smiles", type=bool, default=True, help="If True, the smiles of the input dataset(s) will be converted to isomeric smiles using RDKit, else isomeric information will be discarded.")

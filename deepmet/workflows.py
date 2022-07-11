@@ -54,7 +54,7 @@ from deepmet.core import DeepMet
 
 
 def get_likeness_scores(dataset_path, results_path, load_model=None, load_config=None, input_fingerprints_path=None,
-                        device="cpu", filter_features=True):
+                        device="cpu"):
     """
     Use a saved DeepMet model to score new molecules. You can load a custom model or use the trained model included
     as part of the package.
@@ -75,9 +75,6 @@ def get_likeness_scores(dataset_path, results_path, load_model=None, load_config
         is None, these will be generated from the data at `dataset_path`.
 
     :param device: The device to be used to test the input observations. One of "cuda" or "cpu".
-
-    :param filter_features: If True, will remove features based on the previous feature selection performed and saved
-        in the json file at `load_config`.
 
     :return: A list of tuples - these tuples contain:
      - The compound IDs
@@ -105,7 +102,9 @@ def get_likeness_scores(dataset_path, results_path, load_model=None, load_config
 
     input_fingerprints_out_path = os.path.join(results_path, "input_fingerprints_processed.csv")
 
-    if filter_features:
+    # if config indicates that feature selection was performed during training, select the same features for the model
+    if "selected_features" in cfg.settings.keys():
+
         input_fingerprints_path = drop_selected_features(
             fingerprints_path=input_fingerprints_path,
             fingerprints_out_path=input_fingerprints_out_path,
@@ -202,7 +201,7 @@ def train_likeness_scorer(
         weight_decay=1e-5,
         validation_split=0.8,
         test_split=0.9,
-        filter_features=False
+        filter_features=True
 ):
     """
     Train a DeepMet model based only on the 'normal' structures specified. 'non-normal' structures can be supplied
@@ -275,6 +274,9 @@ def train_likeness_scorer(
         the test set. Passed to the
         `test_split` argument of the :py:meth:`deepmet.datasets.load_training_dataset` function.
 
+    :param filter_features: If True, :py:meth:`deepmet.auxiliary.select_features` will be used to select features from
+        the input. Else, the entire dataset will be used as input to the model.
+
     :return: A model of the class :py:meth:`deepmet.core.DeepMet`.
     """
 
@@ -298,7 +300,6 @@ def train_likeness_scorer(
 
         non_normal_fingerprints_out_path = os.path.join(results_path, "non_normal_fingerprints_processed.csv")
 
-    # Filter features if necessary
     if filter_features:
         normal_fingerprints_path, non_normal_fingerprints_paths, selected_features = select_features(
             normal_fingerprints_path=normal_fingerprints_path,

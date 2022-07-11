@@ -21,7 +21,7 @@
 import unittest
 import pandas as pd
 
-from tests.auxiliary import *
+from tests.utils import *
 from deepmet.workflows import train_likeness_scorer, get_likeness_scores
 
 
@@ -54,7 +54,7 @@ class TrainModelTestCase(unittest.TestCase):
             objective="one-class",
             nu=0.1,
             rep_dim=200,
-            device="cpu",
+            device="cuda",
             seed=1,
             optimizer_name="amsgrad",
             lr=0.000100095,
@@ -63,7 +63,8 @@ class TrainModelTestCase(unittest.TestCase):
             batch_size=10,
             weight_decay=1e-5,
             validation_split=0.8,
-            test_split=None
+            test_split=None,
+            filter_features=True
         )
 
         cls.rescore_results_path = cls.to_test_results("deep_met_model_rescored")

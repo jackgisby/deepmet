@@ -1,0 +1,2 @@
+[run]
+omit = tests/*,setup.py,deepmet/__main__.py
