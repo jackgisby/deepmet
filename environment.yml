@@ -1,18 +1,17 @@
 name:
   DeepMet
 channels:
-  - anaconda
+  - defaults
   - pytorch
   - conda-forge
 dependencies:
   - python=3.8
-  - scikit-learn=0.24.2
+  - numpy=1.22.3
+  - mkl=2021.4.0
   - pytorch=1.7.0
-  - torchvision=0.8.1
-  - torchaudio=0.7.0
   - jpype1=1.2.1
-  - pyod=0.9.0
   - Click=7.1.2
   - rdkit=2022.03.4
   - cdk=2.5
   - openjdk=11.0.15
+  - scikit-learn=0.24.2
