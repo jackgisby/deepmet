@@ -7,7 +7,6 @@ channels:
 dependencies:
   - python=3.8
   - numpy=1.22.3
-  - mkl=2021.4.0
   - pytorch=1.7.0
   - jpype1=1.2.1
   - Click=7.1.2
