@@ -46,7 +46,7 @@ def main():
         ],
         entry_points={
          "console_scripts": [
-             "deepmet = deepmet.__main__:main"
+             "deepmet = deepmet.__main__:cli"
          ]
         }
     )

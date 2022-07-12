@@ -27,12 +27,16 @@ jobs:
           environment-file: environment.yml
           channels: anaconda, pytorch, conda-forge
 
-      - name: Test with pytest-cov
+      - name: Setup DeepMet
         shell: bash -l {0}
         run: |
           python setup.py install
-          conda install pytest==4.6.11 codecov pytest-cov -c conda-forge
+          deepmet --help
 
+      - name: Test with pytest-cov
+        shell: bash -l {0}
+        run: |
+          conda install pytest==4.6.11 codecov pytest-cov -c conda-forge
           pytest --cov ./ --cov-config=.coveragerc --cov-report=xml
 
       - name: Lint with flake8
