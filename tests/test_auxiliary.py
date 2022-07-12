@@ -24,7 +24,7 @@ from tests.utils import *
 from deepmet.auxiliary import *
 
 
-class TrainModelTestCase(unittest.TestCase):
+class AuxiliaryTestCase(unittest.TestCase):
     temp_results_dir = None
 
     @classmethod
