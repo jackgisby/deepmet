@@ -59,10 +59,7 @@ class BasicMultilayer(BaseNet):
     """
 
     def __init__(self, rep_dim: int, in_features: int):
-        super().__init__()
-
-        self.rep_dim = rep_dim
-        self.in_features = in_features
+        super().__init__(rep_dim, in_features)
 
         self.deep1 = nn.Linear(self.in_features, 500)
         self.deep2 = nn.Linear(500, 250)
@@ -119,10 +116,7 @@ class CocrystalTransformer(BaseNet):
     """
 
     def __init__(self, rep_dim: int, in_features: int):
-        super().__init__()
-
-        self.rep_dim = rep_dim
-        self.in_features = in_features
+        super().__init__(rep_dim, in_features)
 
         self.seq = nn.Sequential(SAB(dim_in=self.in_features, dim_out=1000, num_heads=10),
                                  SAB(dim_in=1000, dim_out=500, num_heads=5),

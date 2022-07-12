@@ -78,11 +78,13 @@ class BaseADDataset(ABC):
 class BaseNet(nn.Module):
     """ Base class for a neural network. """
 
-    def __init__(self):
+    def __init__(self, rep_dim: int, in_features: int):
         super().__init__()
 
         self.logger = logging.getLogger(self.__class__.__name__)
-        self.rep_dim = None
+
+        self.rep_dim = rep_dim
+        self.in_features = in_features
 
     def forward(self, *input):
         """ Forward pass logic. """

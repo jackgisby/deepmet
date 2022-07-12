@@ -54,10 +54,14 @@ from deepmet.auxiliary import Config
 from deepmet.core import DeepMet
 
 
-def get_likeness_scores(dataset_path: str, results_path: str, load_model: Union[None, str] = None,
-                        load_config: Union[None, str] = None,
-                        input_fingerprints_path: Union[None, str] = None, device: str = "cpu"
-                        ) -> List[Tuple[int, str, float]]:
+def get_likeness_scores(
+        dataset_path: str,
+        results_path: str,
+        load_model: Union[None, str] = None,
+        load_config: Union[None, str] = None,
+        input_fingerprints_path: Union[None, str] = None,
+        device: str = "cpu"
+) -> List[Tuple[int, str, float]]:
     """
     Use a saved DeepMet model to score new molecules. You can load a custom model or
     use the trained model included as part of the package.
