@@ -65,7 +65,22 @@ class TrainModelTestCase(unittest.TestCase):
         self.assertEqual(len(loaded_cfg.settings["selected_features"]), 10355)
         del loaded_cfg.settings["selected_features"]
 
-        self.assertEqual(loaded_cfg.settings, {'net_name': 'cocrystal_transformer', 'objective': 'one-class', 'nu': 0.1, 'rep_dim': 200, 'seed': 1, 'optimizer_name': 'amsgrad', 'lr': 0.000155986, 'n_epochs': 20, 'lr_milestones': [], 'batch_size': 2000, 'weight_decay': 1e-05, 'pretrain': False, 'in_features': 2800, 'device': 'cpu'})
+        self.assertEqual(loaded_cfg.settings, {
+            'net_name': 'cocrystal_transformer',
+            'objective': 'one-class',
+            'nu': 0.1,
+            'rep_dim': 200,
+            'seed': 1,
+            'optimizer_name': 'amsgrad',
+            'lr': 0.000155986,
+            'n_epochs': 20,
+            'lr_milestones': [],
+            'batch_size': 2000,
+            'weight_decay': 1e-05,
+            'pretrain': False,
+            'in_features': 2800,
+            'device': 'cpu'
+        })
 
     def test_molecular_fingerprints(self):
 
@@ -104,13 +119,17 @@ class TrainModelTestCase(unittest.TestCase):
 
         self.assertTrue(test_fingerprints == fingerprints_from_file)
 
-    def test_drop_selected_features(self):
+    def test_select_features(self):
 
         # get features to remove
         cfg = Config({})
         cfg.load_config(self.to_test_results("data", "models", "config.json"))
 
-        normal_meta_path, non_normal_meta_path = get_normal_non_normal_subsets(self.to_test_results(), normal_sample_size=50)
+        #  get a smaller subset of the test molecules
+        normal_meta_path, non_normal_meta_path = get_normal_non_normal_subsets(
+            self.to_test_results(),
+            normal_sample_size=50
+        )
 
         # get fingerprints for sample molecules
         sample_fingerprints_path = get_fingerprints_from_meta(
@@ -118,24 +137,82 @@ class TrainModelTestCase(unittest.TestCase):
             self.to_test_results("sample_fingerprints.csv")
         )
 
-        # drop the features
-        sample_fingerprints_processed_path = drop_selected_features(
+        sample_non_normal_fingerprints_path = get_fingerprints_from_meta(
+            non_normal_meta_path,
+            self.to_test_results("sample_non_normal_fingerprints.csv")
+        )
+
+        # drop the features, check the output is as we expect
+        sample_fingerprints_processed = drop_selected_features(
             sample_fingerprints_path,
             self.to_test_results("sample_fingerprints_processed.csv"),
             cfg.settings["selected_features"]
         )
 
-        # read the fingerprints from file
-        with open(sample_fingerprints_processed_path, "r") as sample_fingerprints_file:
+        sample_fingerprints_processed = pd.read_csv(
+            sample_fingerprints_processed,
+            header=None,
+            index_col=False
+        )
 
-            sample_fingerprints_csv = csv.reader(sample_fingerprints_file)
+        self.assertEqual(sample_fingerprints_processed.shape, (50, 2800))
+        self.assertEqual(sample_fingerprints_processed.iloc[0].sum(), 169)
 
-            for i, fingerprint in enumerate(sample_fingerprints_csv):
-                processed_fingerprints_from_file = [int(s) for s in fingerprint]
-                self.assertEqual(len(processed_fingerprints_from_file), 2800)
+        # repeat for the non-normal fingerprints
+        sample_non_normal_fingerprints_processed = drop_selected_features(
+            sample_non_normal_fingerprints_path,
+            self.to_test_results("sample_non_normal_fingerprints_processed.csv"),
+            cfg.settings["selected_features"]
+        )
 
-                if not i:
-                    self.assertEqual(sum(processed_fingerprints_from_file), 169)
+        sample_non_normal_fingerprints_processed = pd.read_csv(
+            sample_non_normal_fingerprints_processed,
+            header=None,
+            index_col=False
+        )
+
+        self.assertEqual(sample_non_normal_fingerprints_processed.shape, (50, 2800))
+        self.assertEqual(sample_non_normal_fingerprints_processed.iloc[0].sum(), 929)
+
+        # re-calculate features to drop, do it for multiple ways of passing non-normal inputs
+        non_normal_inputs = {
+            "list": [sample_non_normal_fingerprints_path],
+            "string": sample_non_normal_fingerprints_path,
+            "none": None
+        }
+
+        for non_normal_input in non_normal_inputs.keys():
+
+            # calculate the features to drop
+            regenerated_fingerprints, regenerated_non_normal_fingerprints, reselected_features = select_features(
+                normal_fingerprints_path=sample_fingerprints_path,
+                normal_fingerprints_out_path=self.to_test_results("regenerated_fingerprints.csv"),
+                non_normal_fingerprints_paths=non_normal_inputs[non_normal_input],
+                non_normal_fingerprints_out_paths=self.to_test_results("regenerated_non_normal_fingerprints.csv")
+            )
+
+            self.assertEqual(sum(reselected_features), 69458545)
+            self.assertEqual(len(reselected_features), 10183)
+
+            regenerated_fingerprints = pd.read_csv(
+                regenerated_fingerprints,
+                header=None,
+                index_col=False
+            )
+
+            self.assertEqual(regenerated_fingerprints.shape, (50, 2972))
+            self.assertEqual(regenerated_fingerprints.iloc[0].sum(), 156)
+
+            if non_normal_inputs[non_normal_input] is not None:
+
+                regenerated_non_normal_fingerprints = pd.read_csv(
+                    regenerated_non_normal_fingerprints[0],
+                    header=None,
+                    index_col=False
+                )
+
+                self.assertEqual(regenerated_non_normal_fingerprints.shape, (50, 2972))
+                self.assertEqual(regenerated_non_normal_fingerprints.iloc[0].sum(), 938)
 
 
 if __name__ == '__main__':
