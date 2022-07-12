@@ -210,7 +210,7 @@ def train_likeness_scorer(
         batch_size: int = 2000,
         weight_decay: float = 1e-5,
         validation_split: float = 0.8,
-        test_split: float = 0.9,
+        test_split: Union[None, float] = 0.9,
         filter_features: bool = True
 ):
     """

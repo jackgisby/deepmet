@@ -127,7 +127,8 @@ def cdk_fingerprint(smi: str, cdk: jpype.JPackage, fp_type: str = "pubchem") -> 
     return bit_vec.astype(int)
 
 
-def get_mol_fingerprint(smiles: str, mol: Chem.Mol, method_name: str, method: Union[list, str, Callable],
+def get_mol_fingerprint(smiles: str, mol: Chem.Mol, method_name: str,
+                        method: Union[list, str, Callable],
                         cdk: jpype.JPackage, nbit: int = 1024) -> list:
     """
     Get molecular fingerprint via a set of different methods.
@@ -359,6 +360,7 @@ def select_features(normal_fingerprints_path: str, normal_fingerprints_out_path:
     # Check that we haven't removed any samples
     normal_num_rows_processed, normal_num_cols_processed = normal_fingerprints.shape
 
+    # Check the processed rows/index line up
     assert normal_num_rows_processed == normal_num_rows
     assert all(normal_fingerprints.index == normal_index)
 

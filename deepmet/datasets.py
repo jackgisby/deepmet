@@ -192,7 +192,7 @@ class MolKeyDataset(Dataset):
 def load_training_dataset(normal_dataset_path: str, normal_meta_path: str,
                           non_normal_dataset_path: Union[None, str] = None,
                           non_normal_dataset_meta_path: Union[None, str] = None, seed: int = 1,
-                          validation_split: float = 0.8, test_split: float = 0.9
+                          validation_split: float = 0.8, test_split: Union[None, float] = 0.9
                           ) -> Tuple[LoadableMolKeyDataset, np.array, LoadableMolKeyDataset]:
     """
     Gets pytorch dataset classes for training and testing. A set of "normal" compounds must be supplied for use as a
