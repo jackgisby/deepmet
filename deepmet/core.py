@@ -64,13 +64,12 @@ class DeepMet(object):
 
     :param nu: The proportion of samples in the training set to be classified as outliers.
 
-    :param in_features: The number of features within the input dataset.
-
     :param rep_dim: The number of dimensions of the representation layer.
+
+    :param in_features: The number of features within the input dataset.
     """
 
     def __init__(self, objective: str = 'one-class', nu: float = 0.1, rep_dim: int = 100, in_features: int = 2048):
-        """ Constructor method. """
 
         assert objective in ('one-class', 'soft-boundary'), "Objective must be either 'one-class' or 'soft-boundary'."
         self.objective = objective
@@ -100,7 +99,7 @@ class DeepMet(object):
 
         self.visualisation = None
 
-    def set_network(self, net_name):
+    def set_network(self, net_name: str):
         """
         Builds the neural network \\phi.
 
@@ -158,11 +157,11 @@ class DeepMet(object):
         Tests the DeepMet model on the test data. Calls :py:meth:`deepmet.core.DeepMetTrainer` to carry out the
         training process.
 
+        :param dataset: Pytorch dataset class. May be loaded with :py:meth:`deepmet.datasets.load_testing_dataset`.
+
         :param device: The device to be used to train the model. One of "cuda" or "cpu".
 
         :param n_jobs_dataloader: The number of cpus to be utilised when loading the training and test sets.
-
-        :param dataset: Pytorch dataset class. May be loaded with :py:meth:`deepmet.datasets.load_testing_dataset`.
         """
 
         if self.trainer is None:
@@ -192,7 +191,7 @@ class DeepMet(object):
                     'net_dict': net_dict},
                    export_model)
 
-    def load_model(self, model_path):
+    def load_model(self, model_path: str):
         """
         Load DeepMet model from model_path. Gets the model's radius, centre and network state dictionary.
 
@@ -205,8 +204,12 @@ class DeepMet(object):
         self.c = model_dict['c']
         self.net.load_state_dict(model_dict['net_dict'])
 
-    def save_results(self, export_json):
-        """ Save results dict to a JSON-file. """
+    def save_results(self, export_json: str):
+        """
+        Save results dict to a JSON-file.
+
+        :param export_json: Path at which to save the results.
+        """
 
         with open(export_json, 'w') as fp:
             json.dump(self.results, fp)
@@ -244,10 +247,13 @@ class DeepMetTrainer(BaseTrainer):
     :param n_jobs_dataloader: The number of cpus to be utilised when loading the training and test sets.
     """
 
-    def __init__(self, objective, R, c, nu: float, optimizer_name: str = 'adam', lr: float = 0.001, n_epochs: int = 150,
-                 lr_milestones: tuple = (), batch_size: int = 128, weight_decay: float = 1e-6, device: str = 'cuda',
+    def __init__(self, objective, R, c, nu: float, optimizer_name: str = 'adam',
+                 lr: float = 0.001, n_epochs: int = 150, lr_milestones: tuple = (),
+                 batch_size: int = 128, weight_decay: float = 1e-6, device: str = 'cuda',
                  n_jobs_dataloader: int = 0):
-        super().__init__(optimizer_name, lr, n_epochs, lr_milestones, batch_size, weight_decay, device, n_jobs_dataloader)
+
+        super().__init__(optimizer_name, lr, n_epochs, lr_milestones, batch_size,
+                         weight_decay, device, n_jobs_dataloader)
 
         assert objective in ('one-class', 'soft-boundary'), "Objective must be either 'one-class' or 'soft-boundary'."
         self.objective = objective
@@ -270,13 +276,15 @@ class DeepMetTrainer(BaseTrainer):
         # Visualisation
         self.latent_visualisation = None
 
-    def train(self, dataset: BaseADDataset, net: BaseNet):
+    def train(self, dataset: BaseADDataset, net: BaseNet) -> BaseNet:
         """
         Method for training the :py:meth:`deepmet.core.DeepMet` model.
 
         :param dataset: Pytorch dataset class. May be loaded with :py:meth:`deepmet.datasets.load_training_dataset`.
 
         :param net: The NN to be trained.
+
+        :return: Returns the input network.
         """
 
         logger = logging.getLogger()
@@ -357,9 +365,10 @@ class DeepMetTrainer(BaseTrainer):
         """
         Method for testing the :py:meth:`deepmet.core.DeepMet` model.
 
-        :param dataset: Pytorch dataset class. May be loaded with :py:meth:`deepmet.datasets.load_testing_dataset`.
+        :param dataset: Pytorch dataset class. May be loaded with
+            :py:meth:`deepmet.datasets.load_testing_dataset`.
 
-        :param net: The NN to be tested.
+        :param net: The network to use for testing.
         """
 
         logger = logging.getLogger()
@@ -422,7 +431,7 @@ class DeepMetTrainer(BaseTrainer):
 
         logger.info('Finished testing.')
 
-    def init_center_c(self, train_loader: DataLoader, net: BaseNet, eps=0.1):
+    def init_center_c(self, train_loader: DataLoader, net: BaseNet, eps=0.1) -> torch.Tensor:
         """
         Initialize hypersphere center c as the mean from an initial forward pass on the data.
 
@@ -430,8 +439,8 @@ class DeepMetTrainer(BaseTrainer):
 
         :param net: The NN to be initialised.
 
-        :param eps: If the centre is too close to 0, it is set to +-eps. Else, zero units can be trivially matched with
-            zero weights.
+        :param eps: If the centre is too close to 0, it is set to +-eps. Else, zero
+            units can be trivially matched with zero weights.
         """
 
         n_samples = 0
@@ -456,11 +465,11 @@ class DeepMetTrainer(BaseTrainer):
         return c
 
 
-def get_radius(dist: torch.Tensor, nu: float):
+def get_radius(dist: torch.Tensor, nu: float) -> int:
     """
     Optimally solve for radius R via the (1-nu)-quantile of distances.
 
-    :param dist: A pytorch tensor.
+    :param dist: A :py:meth:`pytorch.Tensor`.
 
     :param nu: The proportion of samples in the training set to be classified as outliers.
 

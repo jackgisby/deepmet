@@ -64,7 +64,10 @@ class BaseADDataset(ABC):
 
     @abstractmethod
     def loaders(self, batch_size: int, num_workers: int = 0) -> (DataLoader, DataLoader):
-        """ Implements data loaders of type torch.auxiliary.data.DataLoader for train_set and test_set. """
+        """
+        Implements data loaders of type :class:`~torch.utils.data.DataLoader` for
+        `self.train_set` and `self.test_set`.
+        """
 
         pass
 
@@ -73,7 +76,7 @@ class BaseADDataset(ABC):
 
 
 class BaseNet(nn.Module):
-    """ Base class for all neural networks. """
+    """ Base class for a neural network. """
 
     def __init__(self):
         super().__init__()
@@ -97,10 +100,10 @@ class BaseNet(nn.Module):
 
 
 class BaseTrainer(ABC):
-    """ Trainer base class. """
+    """ Base class for a one-group model trainer. """
 
-    def __init__(self, optimizer_name: str, lr: float, n_epochs: int, lr_milestones: tuple, batch_size: int,
-                 weight_decay: float, device: str, n_jobs_dataloader: int):
+    def __init__(self, optimizer_name: str, lr: float, n_epochs: int, lr_milestones: tuple,
+                 batch_size: int, weight_decay: float, device: str, n_jobs_dataloader: int):
         super().__init__()
 
         self.optimizer_name = optimizer_name
@@ -114,26 +117,47 @@ class BaseTrainer(ABC):
 
     @abstractmethod
     def train(self, dataset: BaseADDataset, net: BaseNet) -> BaseNet:
-        """ Implements train method that trains the given network using the train_set of dataset. """
+        """ Implements train method that trains the given network using the `train_set` of dataset. """
 
         pass
 
     @abstractmethod
     def test(self, dataset: BaseADDataset, net: BaseNet):
-        """ Implements test method that evaluates the test_set of dataset on the given network. """
+        """ Implements test method that evaluates the `test_set` of dataset on the given network. """
 
         pass
 
 
 class LoadableDataset(BaseADDataset):
-    """ Class for loading datasets into a useable format. """
+    """ Class for loading datasets into :class:`~torch.utils.data.DataLoader` objects. """
 
     def __init__(self, root: str):
         super().__init__(root)
 
     def loaders(self, batch_size: int, num_workers: int = 0) -> (DataLoader, DataLoader):
+        """
+        Loads the dataset to :class:`~torch.utils.data.DataLoader` objects.
 
-        train_loader = DataLoader(dataset=self.train_set, batch_size=batch_size, shuffle=False, num_workers=num_workers)
-        test_loader = DataLoader(dataset=self.test_set, batch_size=batch_size, shuffle=False, num_workers=num_workers)
+        :param batch_size: How many samples per batch should be loaded.
+
+        :param num_workers: The number of processes to be used for loading.
+
+        :return: A tuple of two :class:`~torch.utils.data.DataLoader` objects, the first
+            representing the training dataset and the second representing the test data.
+        """
+
+        train_loader = DataLoader(
+            dataset=self.train_set,
+            batch_size=batch_size,
+            shuffle=False,
+            num_workers=num_workers
+        )
+
+        test_loader = DataLoader(
+            dataset=self.test_set,
+            batch_size=batch_size,
+            shuffle=False,
+            num_workers=num_workers
+        )
 
         return train_loader, test_loader

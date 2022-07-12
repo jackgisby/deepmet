@@ -45,12 +45,13 @@ import os
 import random
 import numpy as np
 from math import floor
+from typing import Union, Tuple
 from torch.utils.data import Dataset, Subset
 
 from deepmet.base import LoadableDataset
 
 
-def unison_shuffled_copies(a, b):
+def unison_shuffled_copies(a: np.array, b: np.array) -> Tuple[np.array, np.array]:
     """
     Shuffle two datasets in unison, using :py:meth:`numpy.random.permutation`.
 
@@ -68,7 +69,8 @@ def unison_shuffled_copies(a, b):
     return a[p], b[p]
 
 
-def get_data_from_csv(dataset_path, meta_path, shuffle=True, add_labels=None):
+def get_data_from_csv(dataset_path: str, meta_path: str, shuffle: bool = True,
+                      add_labels: float = None) -> Tuple[np.array, np.array]:
     """
     Get fingerprints and metadata from CSV files.
 
@@ -119,8 +121,79 @@ def get_data_from_csv(dataset_path, meta_path, shuffle=True, add_labels=None):
         return self_x_data, self_labels
 
 
-def load_training_dataset(normal_dataset_path, normal_meta_path, non_normal_dataset_path=None,
-                          non_normal_dataset_meta_path=None, seed=1, validation_split=0.8, test_split=0.9):
+class LoadableMolKeyDataset(LoadableDataset):
+    """
+    A loadable pytorch dataset. Can contain a test and training set - the test set may be used as a test or validation
+    set.
+
+    :param root: The directory containing the datasets.
+
+    :param train_idx: If provided, represents a list of indices indicating observations
+        that belong to the training data split.
+
+    :param test_idx: If provided, represents a list of indices indicating observations
+        that belong to the testing data split.
+
+    :param data: A 2D numpy array containing the dataset.
+
+    :param labels: Group labels for each observation in `data`.
+    """
+
+    def __init__(self, root: str, train_idx: Union[range, None] = None, test_idx: Union[range, None] = None,
+                 data: Union[np.array, None] = None, labels: Union[np.array, None] = None):
+        super().__init__(root)
+
+        self.train_set = MolKeyDataset(root=self.root, train=True, data=data, labels=labels)
+
+        if train_idx is not None:
+          self.train_set = Subset(self.train_set, train_idx)
+
+        self.test_set = MolKeyDataset(root=self.root, train=False, data=data, labels=labels)
+
+        if test_idx is not None:
+            self.test_set = Subset(self.test_set, test_idx)
+
+
+class MolKeyDataset(Dataset):
+    """
+    A pytorch dataset representing a training, validation or test set.
+
+    :param root: The directory containing the dataset.
+
+    :param train: Whether the dataset represents "training" data.
+
+    :param data: A 2D numpy array containing the dataset.
+
+    :param labels: Group labels for each observation in `data`.
+    """
+
+    def __init__(self, root: str, train: bool, data: Union[np.array, None] = None,
+                 labels: Union[np.array, None] = None):
+        super(MolKeyDataset, self).__init__()
+
+        self.train = train
+
+        self.data = data
+
+        if labels is None:
+            self.labels = np.zeros(self.data.shape[0])
+        else:
+            self.labels = labels.astype(float)
+
+    # This is used to return a single datapoint. A requirement from pytorch
+    def __getitem__(self, index):
+        return self.data[index], self.labels[index], index
+
+    # For Pytorch to know how many datapoints are in the dataset
+    def __len__(self):
+        return len(self.data)
+
+
+def load_training_dataset(normal_dataset_path: str, normal_meta_path: str,
+                          non_normal_dataset_path: Union[None, str] = None,
+                          non_normal_dataset_meta_path: Union[None, str] = None, seed: int = 1,
+                          validation_split: float = 0.8, test_split: float = 0.9
+                          ) -> Tuple[LoadableMolKeyDataset, np.array, LoadableMolKeyDataset]:
     """
     Gets pytorch dataset classes for training and testing. A set of "normal" compounds must be supplied for use as a
     training dataset. Some of these structures must be reserved for the validation dataset and some may also be used
@@ -188,13 +261,26 @@ def load_training_dataset(normal_dataset_path, normal_meta_path, non_normal_data
             if i != j:
                 assert all([a_item not in b for a_item in a])
 
-    full_dataset = LoadableMolKeyDataset(root=normal_dataset_path, train_idx=train_index, test_idx=test_index, data=x_data, labels=labels[:, 2])
-    val_dataset = LoadableMolKeyDataset(root=normal_dataset_path, train_idx=train_index, test_idx=val_index, data=x_data, labels=labels[:, 2])
+    full_dataset = LoadableMolKeyDataset(
+        root=normal_dataset_path,
+        train_idx=train_index,
+        test_idx=test_index,
+        data=x_data,
+        labels=labels[:, 2]
+    )
+
+    val_dataset = LoadableMolKeyDataset(
+        root=normal_dataset_path,
+        train_idx=train_index,
+        test_idx=val_index,
+        data=x_data,
+        labels=labels[:, 2]
+    )
 
     return full_dataset, labels, val_dataset
 
 
-def load_testing_dataset(input_dataset_path, input_meta_path):
+def load_testing_dataset(input_dataset_path: str, input_meta_path: str) -> Tuple[LoadableMolKeyDataset, np.array]:
     """
     Load a test set in the absence of training data.
     
@@ -213,50 +299,3 @@ def load_testing_dataset(input_dataset_path, input_meta_path):
     full_dataset = LoadableMolKeyDataset(root=input_dataset_path, data=x_data, labels=np.zeros((num_rows, 1)))
 
     return full_dataset, labels
-
-
-class LoadableMolKeyDataset(LoadableDataset):
-    """
-    A loadable pytorch dataset. Can contain a test and training set - the test set may be used as a test or validation
-    set.
-    """
-
-    def __init__(self, root: str, train_idx=None, test_idx=None, data=None, labels=None):
-        super().__init__(root)
-
-        self.train_set = MolKeyDataset(root=self.root, train=True, data=data, labels=labels)
-
-        if train_idx is not None:
-          self.train_set = Subset(self.train_set, train_idx)
-
-        self.test_set = MolKeyDataset(root=self.root, train=False, data=data, labels=labels)
-
-        if test_idx is not None:
-            self.test_set = Subset(self.test_set, test_idx)
-
-
-class MolKeyDataset(Dataset):
-    """
-    A pytorch dataset representing a training, validation or test set.
-
-    """
-
-    def __init__(self, root, train, data=None, labels=None):
-        super(MolKeyDataset, self).__init__()
-
-        self.train = train
-
-        self.data = data
-
-        if labels is None:
-            self.labels = np.zeros(self.data.shape[0])
-        else:
-            self.labels = labels.astype(float)
-
-    # This is used to return a single datapoint. A requirement from pytorch
-    def __getitem__(self, index):
-        return self.data[index], self.labels[index], index
-
-    # For Pytorch to know how many datapoints are in the dataset
-    def __len__(self):
-        return len(self.data)

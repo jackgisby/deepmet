@@ -26,6 +26,7 @@ import numpy as np
 import pandas as pd
 from rdkit import Chem, RDLogger
 from rdkit.Chem import MACCSkeys, AllChem
+from typing import Union, Dict, Tuple, Callable
 
 
 class Config(object):
@@ -35,12 +36,11 @@ class Config(object):
     :param settings: Dictionary containing model configuration settings.
     """
 
-    def __init__(self, settings):
-        """ Constructor method """
+    def __init__(self, settings: dict):
 
         self.settings = settings
 
-    def load_config(self, import_json):
+    def load_config(self, import_json: str):
         """
         Load settings dict from import_json (path/filename.json) JSON-file.
 
@@ -53,19 +53,20 @@ class Config(object):
         for key, value in settings.items():
             self.settings[key] = value
 
-    def save_config(self, export_json):
+    def save_config(self, export_json: str):
         """
-        Save settings dict to export_json (path/filename.json) JSON-file. The configuration class can later be restored
-        using `load_config`.
+        Save settings dict to export_json (path/filename.json) JSON-file. The
+        configuration class can later be restored using `load_config`.
 
-        :param export_json: Path at which to store a json file based on the configuration settings.
+        :param export_json: Path at which to store a json file based on the
+            configuration settings.
         """
 
         with open(export_json, 'w') as fp:
             json.dump(self.settings, fp)
 
 
-def start_jpype():
+def start_jpype() -> jpype.JPackage:
     """
     Start `jpype` process for interface with the CDK jar executable.
 
@@ -81,7 +82,7 @@ def start_jpype():
     return jpype.JPackage('org').openscience.cdk
 
 
-def cdk_fingerprint(smi, cdk, fp_type="pubchem"):
+def cdk_fingerprint(smi: str, cdk: jpype.JPackage, fp_type: str = "pubchem") -> np.array:
     """
     Get CDK fingerprints.
 
@@ -91,7 +92,7 @@ def cdk_fingerprint(smi, cdk, fp_type="pubchem"):
 
     :param fp_type: Fingerprint to get from CDK. One of `estate`, `pubchem` or `klekota-roth`.
 
-    :return: A bit-based fingerprint as a list.
+    :return: A bit-based fingerprint as a numpy array.
     """
 
     smiles_parser = cdk.smiles.SmilesParser(cdk.DefaultChemObjectBuilder.getInstance())
@@ -126,27 +127,32 @@ def cdk_fingerprint(smi, cdk, fp_type="pubchem"):
     return bit_vec.astype(int)
 
 
-def get_mol_fingerprint(smiles, mol, method_name, method, cdk, nbit=1024):
+def get_mol_fingerprint(smiles: str, mol: Chem.Mol, method_name: str, method: Union[list, str, Callable],
+                        cdk: jpype.JPackage, nbit: int = 1024) -> list:
     """
-    Get molecular fingerprint via a set of different methods. :py:meth:`deepmet:auxiliary:get_fingerprint_methods` can
-    be used to generate a dictionary, the keys of which refer to possible values of `method_name` and values which
-    refer to possible values of `method`.
+    Get molecular fingerprint via a set of different methods.
+    :py:meth:`deepmet:auxiliary:get_fingerprint_methods` can be used to generate
+    a dictionary, the keys of which refer to possible values of `method_name`
+    and values which refer to possible values of `method`.
 
     :param smiles: String containing the smiles to be converted to a bit-based fingerprint.
 
     :param mol: A :py:meth:`rdkit.Chem.Mol` object calculated from the input `smiles` string.
 
-    :param method_name: Name of the method to be used to calculate fingerprints. Can be one of morgan, estate, pubchem,
-        klekota-roth, maccs, mol_descriptors. Else, `method` is applied as a function to calculate fingerprints with
-        the argument `fpSize` set to `nbit`.
+    :param method_name: Name of the method to be used to calculate fingerprints.
+        Can be one of morgan, estate, pubchem, klekota-roth, maccs, mol_descriptors.
+        Else, `method` is applied as a function to calculate fingerprints with the
+        argument `fpSize` set to `nbit`.
 
-    :param method: Function to be used to calculate fingerprints. Not required for CDK fingerprints (estate, pubchem
-        and klekota-roth).
+    :param method: Function, or name of a function, to be used to calculate fingerprints.
+        Not required for CDK fingerprints (estate, pubchem and klekota-roth). For instance,
+        one that was created by :py:meth:`deepmet:auxiliary:get_fingerprint_methods`.
 
-    :param nbit: The size of the fingerprint to be generated. Does not apply to fixed length fingerprints - including
-        morgan, maccs or mol_descriptors fingerprint methods.
+    :param nbit: The size of the fingerprint to be generated. Does not apply to
+        fixed length fingerprints - including morgan, maccs or mol_descriptors
+        fingerprint methods.
 
-    :param cdk: Gateway to CDK java class, as returned :py:meth:`deepmet.auxiliary.start_jpype`.
+    :param cdk: Gateway to CDK java class, as returned by :py:meth:`deepmet.auxiliary.start_jpype`.
 
     :return: A bit-based fingerprint as a list.
     """
@@ -166,7 +172,7 @@ def get_mol_fingerprint(smiles, mol, method_name, method, cdk, nbit=1024):
     return fingerprint
 
 
-def smiles_to_matrix(smiles, mol, fingerprint_methods=None):
+def smiles_to_matrix(smiles: str, mol: Chem.Mol, fingerprint_methods: Union[str, None] = None) -> list:
     """
     Get the final matrix of fingerprints from the smiles
 
@@ -174,9 +180,10 @@ def smiles_to_matrix(smiles, mol, fingerprint_methods=None):
 
     :param mol: A :py:meth:`rdkit.Chem.Mol` object calculated from the input `smiles` string.
 
-    :param fingerprint_methods: A dictionary describing the fingerprint methods to be used. Should be a subset of
-        the dictionary created by :py:meth:`deepmet:auxiliary:get_fingerprint_methods` - if `fingerprint_methods` is
-        `None`, then the entire set of fingerprints will be used by default.
+    :param fingerprint_methods: A dictionary describing the fingerprint methods
+        to be used. Should be a subset of the dictionary created by
+        :py:meth:`deepmet:auxiliary:get_fingerprint_methods` - if `fingerprint_methods`
+        is `None`, then the entire set of fingerprints will be used by default.
 
     :return: A set of concatenated bit-based fingerprints as a list.
     """
@@ -188,14 +195,21 @@ def smiles_to_matrix(smiles, mol, fingerprint_methods=None):
 
     fingerprint = []
     for fingerprint_method in fingerprint_methods.keys():
-        fingerprint += get_mol_fingerprint(smiles, mol, fingerprint_method, fingerprint_methods[fingerprint_method], cdk)
+        fingerprint += get_mol_fingerprint(
+            smiles,
+            mol,
+            fingerprint_method,
+            fingerprint_methods[fingerprint_method],
+            cdk
+        )
 
     return fingerprint
 
 
-def get_fingerprint_methods():
+def get_fingerprint_methods() -> Dict[str, Union[list, str, Callable]]:
     """
-    Generate a dictionary containing fingerprints to be used by :py:meth:`deepmet:auxiliary:get_mol_fingerprint`
+    Generate a dictionary containing fingerprints to be used by
+    :py:meth:`deepmet:auxiliary:get_mol_fingerprint`
 
     :return: A dictionary specifying fingerprint names and methods.
     """
@@ -215,14 +229,15 @@ def get_fingerprint_methods():
     }
 
 
-def get_fingerprints_from_meta(meta_path, fingerprints_out_path):
+def get_fingerprints_from_meta(meta_path: str, fingerprints_out_path: str) -> str:
     """
     Takes a file containing smiles and generates a file containing molecular fingerprints.
 
-    :param meta_path: The path of a CSV file, the first column of which contains structure IDs and the second contains
-        smiles.
+    :param meta_path: The path of a CSV file, the first column of which contains
+        structure IDs and the second contains smiles.
 
-    :param fingerprints_out_path: The path at which a new CSV file will be written containing molecular fingerprints.
+    :param fingerprints_out_path: The path at which a new CSV file will be written
+        containing molecular fingerprints.
 
     :return: The value of `fingerprints_out_path`.
     """
@@ -251,30 +266,34 @@ def get_fingerprints_from_meta(meta_path, fingerprints_out_path):
     return fingerprints_out_path
 
 
-def select_features(normal_fingerprints_path, normal_fingerprints_out_path,
-                    non_normal_fingerprints_paths=None, non_normal_fingerprints_out_paths=None,
-                    unbalanced=0.1):
+def select_features(normal_fingerprints_path: str, normal_fingerprints_out_path: str,
+                    non_normal_fingerprints_paths: Union[None, str, list],
+                    non_normal_fingerprints_out_paths: Union[None, str, list],
+                    unbalanced: Union[None, float] = 0.1) -> Tuple[str, list, list]:
     """
     Carry out feature selection based on a set of molecular fingerprints.
 
-    :param normal_fingerprints_path: The path of a set of "normal" input fingerprints, in CSV format. Feature selection
-        will be performed on these data.
+    :param normal_fingerprints_path: The path of a set of "normal" input fingerprints,
+        in CSV format. Feature selection will be performed on these data.
 
-    :param normal_fingerprints_out_path: The path at which to write the new, reduced set of "normal" fingerprints, as a
-        CSV file.
+    :param normal_fingerprints_out_path: The path at which to write the new, reduced
+        set of "normal" fingerprints, as a CSV file.
 
-    :param non_normal_fingerprints_paths: A list of paths to CSVs containing "non-normal" input fingerprints. Feature
-        selection, calculated based on the "normal" input fingerprints, will also be applied to these. If set to None,
-        will solely perform feature selection on the "normal" set of fingerprints.
+    :param non_normal_fingerprints_paths: A list of paths to CSVs containing "non-normal"
+        input fingerprints. Feature selection, calculated based on the "normal" input
+        fingerprints, will also be applied to these. If set to None, will solely
+        perform feature selection on the "normal" set of fingerprints.
 
-    :param non_normal_fingerprints_out_paths: A list of paths at which write the reduced sets of "non-normal"
-        fingerprints, as CSV files.
+    :param non_normal_fingerprints_out_paths: A list of paths at which write the
+        reduced sets of "non-normal" fingerprints, as CSV files.
 
-    :param unbalanced: Float that controls the stringency of feature selection. If left as default, 0.1, features
-        that are 90% a single value will be removed.
+    :param unbalanced: Float that controls the stringency of feature selection.
+        If left as default, 0.1, features that are 90% a single value will be removed.
+        If `unbalanced` is None, this feature selection step will not be performed.
 
-    :return: A tuple of three values, the first two of which are the values of `normal_fingerprints_out_path`,
-        `non_normal_fingerprints_out_paths`. The third is a vector specifying which columns were selected by the method.
+    :return: A tuple of three values, the first two of which are the values of
+        `normal_fingerprints_out_path`, `non_normal_fingerprints_out_paths`.
+        The third is a vector specifying which columns were selected by the method.
     """
 
     normal_fingerprints = pd.read_csv(normal_fingerprints_path, dtype=int, header=None, index_col=False)
@@ -298,7 +317,8 @@ def select_features(normal_fingerprints_path, normal_fingerprints_out_path,
 
         for i in range(len(non_normal_fingerprints_paths)):
             non_normal_fingerprints.append(
-                pd.read_csv(non_normal_fingerprints_paths[i], dtype=int, header=None, index_col=False))
+                pd.read_csv(non_normal_fingerprints_paths[i], dtype=int, header=None, index_col=False)
+            )
 
             num_rows, num_cols = non_normal_fingerprints[i].shape
             non_normal_num_rows.append(num_rows)
@@ -325,9 +345,10 @@ def select_features(normal_fingerprints_path, normal_fingerprints_out_path,
             balance_table = normal_fingerprints[cname].value_counts()
             balance = balance_table[0] / (balance_table[1] + balance_table[0])
 
-            # Remove those that are mostly "1" or mostly "0"
-            if balance > (1 - unbalanced) or balance < unbalanced:
-                cols_to_remove.append(i)
+            if unbalanced is not None:
+                # Remove those that are mostly "1" or mostly "0"
+                if balance > (1 - unbalanced) or balance < unbalanced:
+                    cols_to_remove.append(i)
 
         else:  # Binary features so should only be max of two different values
             assert False
@@ -364,14 +385,16 @@ def select_features(normal_fingerprints_path, normal_fingerprints_out_path,
     return normal_fingerprints_out_path, non_normal_fingerprints_out_paths, cols_to_remove
 
 
-def drop_selected_features(fingerprints_path, fingerprints_out_path, cols_to_remove):
+def drop_selected_features(fingerprints_path: str, fingerprints_out_path: str, cols_to_remove: list) -> str:
     """
-    Drops features that have already been pre-selected by :py:meth:`deepmet:auxiliary:select_features`.
+    Drops features that have already been pre-selected by
+    :py:meth:`deepmet:auxiliary:select_features`.
 
-    :param fingerprints_path: The path of a set of input fingerprints, in CSV format. Features will be selected based
-        on the value of `cols_to_remove`.
+    :param fingerprints_path: The path of a set of input fingerprints, in CSV format.
+        Features will be selected based on the value of `cols_to_remove`.
 
-    :param fingerprints_out_path: The path at which to write the new, reduced set of fingerprints, as a CSV file.
+    :param fingerprints_out_path: The path at which to write the new, reduced set
+        of fingerprints, as a CSV file.
 
     :param cols_to_remove: A vector specifying which columns are to be removed.
 

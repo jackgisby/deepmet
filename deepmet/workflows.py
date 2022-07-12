@@ -46,33 +46,39 @@ import torch
 import random
 import logging
 import numpy as np
+from typing import Union, List, Tuple
 
-from deepmet.datasets import load_testing_dataset, load_training_dataset
+from deepmet.datasets import LoadableMolKeyDataset, load_testing_dataset, load_training_dataset
 from deepmet.auxiliary import get_fingerprints_from_meta, drop_selected_features, select_features
 from deepmet.auxiliary import Config
 from deepmet.core import DeepMet
 
 
-def get_likeness_scores(dataset_path, results_path, load_model=None, load_config=None, input_fingerprints_path=None,
-                        device="cpu"):
+def get_likeness_scores(dataset_path: str, results_path: str, load_model: Union[None, str] = None,
+                        load_config: Union[None, str] = None,
+                        input_fingerprints_path: Union[None, str] = None, device: str = "cpu"
+                        ) -> List[Tuple[int, str, float]]:
     """
-    Use a saved DeepMet model to score new molecules. You can load a custom model or use the trained model included
-    as part of the package.
+    Use a saved DeepMet model to score new molecules. You can load a custom model or
+    use the trained model included as part of the package.
 
-    :param dataset_path: Path of the input dataset to be scored. Should be a CSV file, the first column of which has
-        compound IDs and the second contains the SMILES molecular representations.
+    :param dataset_path: Path of the input dataset to be scored. Should be a CSV file,
+        the first column of which has compound IDs and the second contains the SMILES
+        molecular representations.
 
     :param results_path: Path at which to save results.
 
-    :param load_model: A DeepMet model, saved using :py:meth:`deepmet.core.DeepMet.save_model`. If None, a pre-trained
-        model included as part of the package is loaded.
+    :param load_model: The path of a DeepMet model, saved using
+        :py:meth:`deepmet.core.DeepMet.save_model`. If None, a pre-trained model
+        included as part of the package is loaded.
 
-    :param load_config: A json file specifying the configuration used to train the model. Only used if `load_model` is
-        not None.
+    :param load_config: The path of a json file specifying the configuration used
+        to train the model. Only used if `load_model` is not None.
 
-    :param input_fingerprints_path: If fingerprints have already been generated from the molecular SMILES strings,
-        the path to the CSV file can be given to skip fingerprint generation and/or feature selection. If this argument
-        is None, these will be generated from the data at `dataset_path`.
+    :param input_fingerprints_path: If fingerprints have already been generated from
+        the molecular SMILES strings, the path to the CSV file can be given to skip
+        fingerprint generation and/or feature selection. If this argument is None,
+        these will be generated from the data at `dataset_path`.
 
     :param device: The device to be used to test the input observations. One of "cuda" or "cpu".
 
@@ -132,7 +138,7 @@ def get_likeness_scores(dataset_path, results_path, load_model=None, load_config
     return test_scores
 
 
-def train_single_model(cfg, dataset):
+def train_single_model(cfg: Config, dataset: LoadableMolKeyDataset) -> DeepMet:
     """
     Trains a single DeepMet model for a given set of parameters and training dataset. Called by
     :py:meth:`deepmet.workflows.train_likeness_scorer`.
@@ -182,26 +188,26 @@ def train_single_model(cfg, dataset):
 
 
 def train_likeness_scorer(
-        normal_meta_path,
-        results_path,
-        non_normal_meta_path=None,
-        normal_fingerprints_path=None,
-        non_normal_fingerprints_path=None,
-        net_name="cocrystal_transformer",
-        objective="one-class",
-        nu=0.1,
-        rep_dim=200,
-        device="cpu",
-        seed=1,
-        optimizer_name="amsgrad",
-        lr=0.000100095,
-        n_epochs=20,
-        lr_milestones=tuple(),
-        batch_size=2000,
-        weight_decay=1e-5,
-        validation_split=0.8,
-        test_split=0.9,
-        filter_features=True
+        normal_meta_path: str,
+        results_path: str,
+        non_normal_meta_path: Union[None, str] = None,
+        normal_fingerprints_path: Union[None, str] = None,
+        non_normal_fingerprints_path: Union[None, str] = None,
+        net_name: str = "cocrystal_transformer",
+        objective: str = "one-class",
+        nu: float = 0.1,
+        rep_dim: int = 200,
+        device: str = "cpu",
+        seed: int = 1,
+        optimizer_name: str = "amsgrad",
+        lr: float = 0.000100095,
+        n_epochs: int = 20,
+        lr_milestones: Tuple[int] = tuple(),
+        batch_size: int = 2000,
+        weight_decay: float = 1e-5,
+        validation_split: float = 0.8,
+        test_split: float = 0.9,
+        filter_features: bool = True
 ):
     """
     Train a DeepMet model based only on the 'normal' structures specified. 'non-normal' structures can be supplied

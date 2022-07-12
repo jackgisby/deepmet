@@ -58,7 +58,7 @@ class BasicMultilayer(BaseNet):
     :param in_features: The number of features within the input dataset.
     """
 
-    def __init__(self, rep_dim, in_features):
+    def __init__(self, rep_dim: int, in_features: int):
         super().__init__()
 
         self.rep_dim = rep_dim
@@ -68,7 +68,7 @@ class BasicMultilayer(BaseNet):
         self.deep2 = nn.Linear(500, 250)
         self.fc_output = nn.Linear(250, self.rep_dim, bias=False)
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         """ Create and return a feed forward neural network. """
 
         x = F.relu(self.deep1(x))
@@ -78,13 +78,15 @@ class BasicMultilayer(BaseNet):
         return x
 
 
-def build_network(net_name, rep_dim, in_features):
+def build_network(net_name: str, rep_dim: int, in_features: int) -> BasicMultilayer:
     """
     Builds the neural network.
 
     :param net_name: May be one of "basic_multilayer" or "cocrystal_transformer", representing the
         :py:meth:`deepmet.networks.BasicMultilayer` and :py:meth:`deepmet.networks.CocrystalTransformer` networks,
         respectively.
+
+    :param rep_dim: The number of dimensions of the representation layer.
 
     :param in_features: The number of features within the input dataset.
 
@@ -107,15 +109,16 @@ def build_network(net_name, rep_dim, in_features):
 
 class CocrystalTransformer(BaseNet):
     """
-    A transformer network containing three :py:meth:`deepmet.networks.SAB` layers and a :py:meth:`deepmet.networks.PAM`
-    layer.
+    A transformer network containing three :py:meth:`deepmet.networks.SAB` layers
+    and a :py:meth:`deepmet.networks.PAM` layer. Architecture based
+    on: https://github.com/juho-lee/set_transformer
 
     :param rep_dim: The number of dimensions of the representation layer.
 
     :param in_features: The number of features within the input dataset.
     """
 
-    def __init__(self, rep_dim, in_features):
+    def __init__(self, rep_dim: int, in_features: int):
         super().__init__()
 
         self.rep_dim = rep_dim
@@ -126,7 +129,7 @@ class CocrystalTransformer(BaseNet):
                                  SAB(dim_in=500, dim_out=self.rep_dim, num_heads=10),
                                  PMA(dim=self.rep_dim, num_heads=5, num_seeds=1))
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         """ Create and return a feed forward neural network. """
 
         x = torch.split(x, self.in_features, dim=1)
@@ -138,7 +141,7 @@ class CocrystalTransformer(BaseNet):
 class MAB(nn.Module):
     """ MAB module. """
 
-    def __init__(self, dim_Q, dim_K, dim_V, num_heads, ln=False):
+    def __init__(self, dim_Q: int, dim_K: int, dim_V: int, num_heads: int, ln: bool = False):
         super(MAB, self).__init__()
 
         self.dim_V = dim_V
@@ -177,11 +180,11 @@ class MAB(nn.Module):
 class SAB(nn.Module):
     """ SAB module. """
 
-    def __init__(self, dim_in, dim_out, num_heads, ln=False):
+    def __init__(self, dim_in: int, dim_out: int, num_heads: int, ln: bool = False):
         super(SAB, self).__init__()
         self.mab = MAB(dim_in, dim_in, dim_out, num_heads, ln=ln)
 
-    def forward(self, X):
+    def forward(self, X: torch.Tensor) -> torch.Tensor:
         """ Create and return the module. """
 
         return self.mab(X, X)
@@ -190,7 +193,7 @@ class SAB(nn.Module):
 class PMA(nn.Module):
     """ PMA module. """
 
-    def __init__(self, dim, num_heads, num_seeds, ln=False):
+    def __init__(self, dim: int, num_heads: int, num_seeds: int, ln: bool = False):
         super(PMA, self).__init__()
 
         self.S = nn.Parameter(torch.Tensor(1, num_seeds, dim))
@@ -198,7 +201,7 @@ class PMA(nn.Module):
 
         self.mab = MAB(dim, dim, dim, num_heads, ln=ln)
 
-    def forward(self, X):
+    def forward(self, X: torch.Tensor) -> torch.Tensor:
         """ Create and return the module. """
 
         return self.mab(self.S.repeat(X.size(0), 1, 1), X)
