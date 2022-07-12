@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-# Copyright © 2021 Ralf Weber
+# Copyright © 2021 Jack Gisby, Ralf Weber
 #
 # This file is part of DeepMet.
 #
