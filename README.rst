@@ -31,8 +31,8 @@ will help you to make the PR if you are new to `git`.
 
 Developers & Contributors
 -------------------------
+ - Jack Gisby (jackgisby@gmail.com) - `University of Birmingham (UK) <http://www.birmingham.ac.uk/index.aspx>`_, `Imperial College London (UK) <https://www.imperial.ac.uk/people/j.gisby20>`_
  - Ralf J. M. Weber (r.j.weber@bham.ac.uk) - `University of Birmingham (UK) <https://www.birmingham.ac.uk/staff/profiles/biosciences/weber-ralf.aspx>`_
- - Jack Gisby (jackgisby@gmail.com) - `University of Birmingham (UK) <http://www.birmingham.ac.uk/index.aspx>`_, `Imperial College London (UK) <https://www.imperial.ac.uk/>`_
 
 
 Licenses
