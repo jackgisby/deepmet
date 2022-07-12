@@ -162,7 +162,7 @@ def train_single_model(cfg: Config, dataset: LoadableMolKeyDataset) -> DeepMet:
         torch.manual_seed(cfg.settings['seed'])
         logger.info('Set seed to %d.' % cfg.settings['seed'])
 
-    # Initialize DeepMet model and set neural network \phi
+    # Initialize DeepMet model and set neural network phi
     deep_met_model = DeepMet(cfg.settings["objective"], cfg.settings["nu"], cfg.settings["rep_dim"], cfg.settings["in_features"])
     deep_met_model.set_network(cfg.settings["net_name"])
 
