@@ -12,5 +12,5 @@ dependencies:
   - Click=7.1.2
   - rdkit=2022.03.4
   - cdk=2.5
-  - openjdk=11.0.15
   - scikit-learn=0.24.2
+  - conda-forge::openjdk=11.0.15
