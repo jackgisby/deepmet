@@ -20,6 +20,8 @@
 
 import unittest
 
+from torch.utils.data import DataLoader
+
 from tests.utils import *
 from deepmet.base import *
 
@@ -37,8 +39,66 @@ class BaseTestCase(unittest.TestCase):
         # create temporary directory for testing
         cls.temp_results_dir = make_temp_results_dir()
 
-    def test_(self):
-        pass
+    def test_base_add_dataset(self):
+
+        # can't create instance of ABC
+        self.assertRaises(TypeError, BaseADDataset)
+
+        # Must implement loaders
+        class ADDDatasetWithoutLoaders(BaseADDataset):
+            pass
+
+        self.assertRaises(TypeError, ADDDatasetWithoutLoaders)
+
+        class ADDDatasetWithLoaders(BaseADDataset):
+
+            def loaders(self):
+                pass
+
+        add_dataset_with_loaders = ADDDatasetWithLoaders("./")
+        self.assertEqual(str(add_dataset_with_loaders), "ADDDatasetWithLoaders")
+        self.assertEqual(add_dataset_with_loaders.root, "./")
+
+    def test_loadable_dataset(self):
+
+        # inherits from BaseADDDataset
+        loadable_dataset = LoadableDataset("./")
+        data_loader = loadable_dataset.loaders(5, 1)
+
+        # creates data loaders
+        self.assertIsInstance(data_loader[0], DataLoader)
+        self.assertIsInstance(data_loader[1], DataLoader)
+
+        # no data given
+        self.assertIsNone(data_loader[0].dataset)
+        self.assertIsNone(data_loader[1].dataset)
+
+    def test_base_net(self):
+
+        # can create instance, inherits from nn.Module not ABC
+        base_net = BaseNet(200, 1000)
+        base_net.summary()
+        self.assertRaises(NotImplementedError, base_net.forward)
+
+    def test_base_trainer(self):
+
+        # can't create instance of ABC
+        self.assertRaises(TypeError, BaseTrainer)
+
+        class TrainerWithoutTrainTest(BaseTrainer):
+            pass
+
+        self.assertRaises(TypeError, TrainerWithoutTrainTest)
+
+        class TrainerWithTrainTest(BaseTrainer):
+
+            def train(self):
+                pass
+
+            def test(self):
+                pass
+
+        trainer_with_train_test = TrainerWithTrainTest("opt", 0.1, 5, tuple(), 5, 0.1, "cpu", 1)
 
 
 if __name__ == '__main__':
