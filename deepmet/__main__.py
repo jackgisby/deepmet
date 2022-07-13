@@ -82,7 +82,7 @@ def score(
 @click.option("--objective", type=click.Choice(["one-class", "soft-boundary"]), default="one-class", help="Deep SVDD objective")
 @click.option("--nu", type=float, default=0.1, show_default=True, help="The hyperparameter nu (must be 0 < nu <= 1)")
 @click.option("--rep_dim", type=int, default=200, show_default=True, help="The number of features used in the representation dimension of the model")
-@click.option("--seed", type=int, default=-1, show_default=True, help="Set seed. If -1, use randomisation")
+@click.option("--seed", type=int, default=1, show_default=True, help="Set seed. If -1, seed will not be set")
 @click.option("--optimizer_name", type=click.Choice(["adam", "amsgrad"]), default="adam", help="Name of the optimizer to use for Deep SVDD network training")
 @click.option("--lr", type=float, default=0.0001, show_default=True, help="Initial learning rate for Deep SVDD network training")
 @click.option("--n_epochs", type=int, default=20, show_default=True, help="Number of epochs to train")
