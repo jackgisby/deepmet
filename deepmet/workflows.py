@@ -46,6 +46,7 @@ import torch
 import random
 import logging
 import numpy as np
+from json import dump
 from typing import Union, List, Tuple
 
 from deepmet.datasets import LoadableMolKeyDataset, load_testing_dataset, load_training_dataset
@@ -137,6 +138,10 @@ def get_likeness_scores(
     test_scores = []
     for i in range(len(dataset_labels)):
         test_scores.append((dataset_labels[i][0], dataset_labels[i][1], deep_met_model.trainer.test_scores[i][2]))
+
+    # dump scores to json
+    with open(os.path.join(results_path, "scores.json"), "w") as out_json:
+        dump(test_scores, out_json)
 
     # ID, smiles, score
     return test_scores
