@@ -18,8 +18,10 @@
 # You should have received a copy of the GNU General Public License
 # along with DeepMet.  If not, see <https://www.gnu.org/licenses/>.
 
-import unittest
+import os
 import pandas as pd
+
+import unittest
 
 from tests.utils import *
 from deepmet.auxiliary import Config
@@ -144,6 +146,29 @@ class TrainModelTestCase(unittest.TestCase):
             self.assertEqual(num_rows, 50 if "non_normal" in fingerprint_csv else 500)
             self.assertEqual(num_cols, 2746 if "processed" in fingerprint_csv else 13155)
 
+    def test_train_with_modified_parameters(self):
+
+        # train without non-normal class
+        train_likeness_scorer(
+            self.normal_meta_path,
+            self.to_test_results()
+        )
+
+        # train without filtering
+        train_likeness_scorer(
+            self.normal_meta_path,
+            self.to_test_results(),
+            filter_features=False
+        )
+
+        # train without test_split
+        train_likeness_scorer(
+            self.normal_meta_path,
+            self.to_test_results(),
+            non_normal_meta_path=self.non_normal_meta_path,
+            test_split=None
+        )
+
     def test_train_single_model(self):
 
         # load the model config so we can provide it to train_single_model
@@ -260,7 +285,6 @@ class ScoreModelTestCase(unittest.TestCase):
 
             # check the first row has the correct values
             self.assertEqual(fingerprints.iloc[0].sum(), fingerprint_first_row_sum)
-            print(fingerprints.iloc[0].sum())
 
             # check the dimensions of the fingerprints
             num_rows, num_cols = fingerprints.shape
