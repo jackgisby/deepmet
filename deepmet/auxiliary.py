@@ -95,8 +95,7 @@ def cdk_fingerprint(smi: str, cdk: jpype.JPackage, fp_type: str = "pubchem") -> 
     :return: A bit-based fingerprint as a numpy array.
     """
 
-    smiles_parser = cdk.smiles.SmilesParser(cdk.DefaultChemObjectBuilder.getInstance())
-
+    # get the CDK fingerprinter based on input string
     if fp_type == "estate":
         nbit = 79
         fingerprinter = cdk.fingerprint.EStateFingerprinter()
@@ -109,8 +108,11 @@ def cdk_fingerprint(smi: str, cdk: jpype.JPackage, fp_type: str = "pubchem") -> 
         nbit = 4860
         fingerprinter = cdk.fingerprint.KlekotaRothFingerprinter()
 
+    # parse the smiles to a mol object
+    smiles_parser = cdk.smiles.SmilesParser(cdk.DefaultChemObjectBuilder.getInstance())
     mol = smiles_parser.parseSmiles(smi)
 
+    # get fingerprints as bit set
     fingerprint = fingerprinter.getBitFingerprint(mol).asBitSet()
 
     # convert the fingerprint bits to a bit vector
@@ -158,15 +160,19 @@ def get_mol_fingerprint(smiles: str, mol: Chem.Mol, method_name: str,
     :return: A bit-based fingerprint as a list.
     """
 
+    # get morgan fingerprint for a particular radius
     if "morgan" in method_name:
         fingerprint = method[0](mol, method[1], nBits=nbit)
 
+    # use cdk_fingerprint function to vget CDK fingerprints
     elif method_name in ("estate", "pubchem", "klekota-roth"):
         fingerprint = list(cdk_fingerprint(smiles, cdk, method_name))
 
+    # use RDKit to get MACCS keys or molecular descriptors
     elif method_name in ("maccs", "mol_descriptors"):
         fingerprint = method(mol)
 
+    # else, use the input function to get a fingerprint
     else:
         fingerprint = method(mol, fpSize=nbit)
 
@@ -189,11 +195,14 @@ def smiles_to_matrix(smiles: str, mol: Chem.Mol, fingerprint_methods: Union[str,
     :return: A set of concatenated bit-based fingerprints as a list.
     """
 
+    # if not provided, get the default set of fingerprints
     if fingerprint_methods is None:
         fingerprint_methods = get_fingerprint_methods()
 
+    # access the CDK jar using jpype
     cdk = start_jpype()
 
+    # get the full fingerprint by concatenating the fingerprint for each method
     fingerprint = []
     for fingerprint_method in fingerprint_methods.keys():
         fingerprint += get_mol_fingerprint(
@@ -299,21 +308,24 @@ def select_features(normal_fingerprints_path: str, normal_fingerprints_out_path:
 
     normal_fingerprints = pd.read_csv(normal_fingerprints_path, dtype=int, header=None, index_col=False)
 
-    # Get inital dataset shape
+    # get inital dataset shape
     normal_num_rows, normal_num_cols = normal_fingerprints.shape
     normal_index = normal_fingerprints.index
 
-    # Rename columns
+    # rename columns
     normal_fingerprints.columns = range(0, normal_num_cols)
 
+    # if there are non-normal fingerprints, load them and get their shapes/index like for the normal structures
     if non_normal_fingerprints_paths is not None:
 
+        # if single element has been given as input, change it to a list
         if not isinstance(non_normal_fingerprints_paths, list):
             non_normal_fingerprints_paths = [non_normal_fingerprints_paths]
 
         if not isinstance(non_normal_fingerprints_out_paths, list):
             non_normal_fingerprints_out_paths = [non_normal_fingerprints_out_paths]
 
+        # read the non-normal fingerprints and collect index/shape information
         non_normal_fingerprints, non_normal_num_rows, normal_num_cols, non_normal_index = [], [], [], []
 
         for i in range(len(non_normal_fingerprints_paths)):
@@ -321,69 +333,78 @@ def select_features(normal_fingerprints_path: str, normal_fingerprints_out_path:
                 pd.read_csv(non_normal_fingerprints_paths[i], dtype=int, header=None, index_col=False)
             )
 
+            # get shape
             num_rows, num_cols = non_normal_fingerprints[i].shape
             non_normal_num_rows.append(num_rows)
             normal_num_cols.append(num_cols)
 
+            # get index and rename columns
             non_normal_index.append(non_normal_fingerprints[i].index)
             non_normal_fingerprints[i].columns = range(0, normal_num_cols[i])
 
-            # Make sure both the columns are the same
-            assert all(normal_fingerprints.columns == non_normal_fingerprints[i].columns)
+            assert all(normal_fingerprints.columns == non_normal_fingerprints[i].columns), \
+                "Columns in the non-normal dataset should be the same as those in the normal data"
 
-    # Remove unbalanced features - https://doi.org/10.1021/acs.analchem.0c01450
-    # Do this just for the normal features
+    # remove unbalanced features - https://doi.org/10.1021/acs.analchem.0c01450
+    # do this just for the normal features
     cols_to_remove = []
     for i, cname in enumerate(normal_fingerprints):
 
         n_unique = normal_fingerprints[cname].nunique()
-        if n_unique == 1:  # var=0 so remove this column
+
+        if n_unique == 1:  # column has 0 variance, so remove
             cols_to_remove.append(i)
 
-        elif n_unique == 2:  # var>0 so check if unbalanced
+        elif n_unique == 2:  # column has variance
 
-            # Get the proportion of features that match the first value
+            # get the proportion of features that match the first value
             balance_table = normal_fingerprints[cname].value_counts()
             balance = balance_table[0] / (balance_table[1] + balance_table[0])
 
             if unbalanced is not None:
-                # Remove those that are mostly "1" or mostly "0"
+                # remove those that are mostly "1" or mostly "0"
                 if balance > (1 - unbalanced) or balance < unbalanced:
                     cols_to_remove.append(i)
 
-        else:  # Binary features so should only be max of two different values
-            assert False
+        else:
+            assert False, f"There were {n_unique} different values in fingerprint, should be either 1 or 2"
 
-    # Remove columns that are unbalanced
+    # remove columns that are unbalanced
     normal_fingerprints.drop(cols_to_remove, axis=1, inplace=True)
 
-    # Check that we haven't removed any samples
+    # check that we haven't removed any samples
     normal_num_rows_processed, normal_num_cols_processed = normal_fingerprints.shape
 
-    # Check the processed rows/index line up
+    # check the processed rows/index line up
     assert normal_num_rows_processed == normal_num_rows
     assert all(normal_fingerprints.index == normal_index)
 
-    # Save processed matrix
+    # save processed matrix
     normal_fingerprints.to_csv(normal_fingerprints_out_path, header=False, index=False)
 
+    # if there are non-normal fingerprints, remove the columns we removed from the normal fingerprints
     if non_normal_fingerprints_paths is not None:
         for i in range(len(non_normal_fingerprints_paths)):
-            # Remove columns that are unbalanced in the normal dataset
+
+            # remove columns that are unbalanced in the normal dataset
             non_normal_fingerprints[i].drop(cols_to_remove, axis=1, inplace=True)
 
-            # Check no samples have been removed
+            # check no samples have been removed
             non_normal_num_rows_processed, non_normal_num_cols_processed = non_normal_fingerprints[i].shape
 
-            assert non_normal_num_rows_processed == non_normal_num_rows[i]
-            assert all(non_normal_fingerprints[i].index == non_normal_index[i])
+            assert non_normal_num_rows_processed == non_normal_num_rows[i], \
+                "Number of rows have changes after feature selection"
 
-            # Check all the columns are the same for each dataset
-            assert all(normal_fingerprints.columns == non_normal_fingerprints[i].columns)
+            assert all(non_normal_fingerprints[i].index == non_normal_index[i]), \
+                "Index has changed after feature selection"
 
-            # Save
+            assert all(normal_fingerprints.columns == non_normal_fingerprints[i].columns), \
+                "All non-normal columns must be the same as those in the normal dataset"
+
+            # save
             non_normal_fingerprints[i].to_csv(non_normal_fingerprints_out_paths[i], header=False, index=False)
 
+    # return the path of the modified fingerprints and the columns that have been removed
     return normal_fingerprints_out_path, non_normal_fingerprints_out_paths, cols_to_remove
 
 
@@ -405,10 +426,10 @@ def drop_selected_features(fingerprints_path: str, fingerprints_out_path: str, c
 
     normal_fingerprints = pd.read_csv(fingerprints_path, dtype=int, header=None, index_col=False)
 
-    # Remove columns that are unbalanced
+    # remove columns that are unbalanced
     normal_fingerprints.drop(cols_to_remove, axis=1, inplace=True)
 
-    # Save processed matrix
+    # save processed matrix
     normal_fingerprints.to_csv(fingerprints_out_path, header=False, index=False)
 
     return fingerprints_out_path

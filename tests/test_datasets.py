@@ -18,9 +18,10 @@
 # You should have received a copy of the GNU General Public License
 # along with DeepMet.  If not, see <https://www.gnu.org/licenses/>.
 
-import unittest
-
+import os
 from torch.utils.data import DataLoader
+
+import unittest
 
 from tests.utils import *
 from deepmet.datasets import *
@@ -192,7 +193,6 @@ class DatasetTestCase(unittest.TestCase):
         # check labels
         self.assertTrue((full_dataset.train_set.dataset.labels[range(50)] == 0).all())
         self.assertTrue((full_dataset.test_set.dataset.labels[range(50, 100)] == 1).all())
-
 
     def test_load_testing_dataset(self):
 

@@ -18,6 +18,8 @@
 # You should have received a copy of the GNU General Public License
 # along with DeepMet.  If not, see <https://www.gnu.org/licenses/>.
 
+import os
+
 import unittest
 
 from tests.utils import *
@@ -89,25 +91,30 @@ class AuxiliaryTestCase(unittest.TestCase):
 
         fingerprint_methods = get_fingerprint_methods()
 
+        # create meta file with test smiles
         with open(self.to_test_results("sample_meta.csv"), "w", newline="") as sample_meta_file:
 
             sample_meta_csv = csv.writer(sample_meta_file)
 
             for smi, mol, fingerprint_sum in zip(self.test_smis, self.test_mols, test_fingerprint_sums):
 
+                # get the fingerprint
                 long_fingerprint = smiles_to_matrix(smi, mol, fingerprint_methods)
 
+                # check fingerprint properties
                 self.assertEqual(len(long_fingerprint), 13155)
                 self.assertEqual(sum(long_fingerprint), fingerprint_sum)
 
                 sample_meta_csv.writerow([smi, smi])
                 test_fingerprints.append(long_fingerprint)
 
+        # use in-built function for getting fingerprints
         sample_fingerprints_out_path = get_fingerprints_from_meta(
             self.to_test_results("sample_meta.csv"),
             self.to_test_results("sample_fingerprints.csv")
         )
 
+        # check get_fingerprints_from_meta gets the correct output
         fingerprints_from_file = []
 
         with open(sample_fingerprints_out_path, "r") as sample_fingerprints_file:
@@ -191,9 +198,11 @@ class AuxiliaryTestCase(unittest.TestCase):
                 non_normal_fingerprints_out_paths=self.to_test_results("regenerated_non_normal_fingerprints.csv")
             )
 
+            # check properties of reselected_features
             self.assertEqual(sum(reselected_features), 69458545)
             self.assertEqual(len(reselected_features), 10183)
 
+            # check properties of regenerated_fingerprints
             regenerated_fingerprints = pd.read_csv(
                 regenerated_fingerprints,
                 header=None,
@@ -203,6 +212,7 @@ class AuxiliaryTestCase(unittest.TestCase):
             self.assertEqual(regenerated_fingerprints.shape, (50, 2972))
             self.assertEqual(regenerated_fingerprints.iloc[0].sum(), 156)
 
+            # check properties of regenerated_non_normal_fingerprints
             if non_normal_inputs[non_normal_input] is not None:
 
                 regenerated_non_normal_fingerprints = pd.read_csv(

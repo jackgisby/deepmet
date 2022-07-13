@@ -71,10 +71,10 @@ class DeepMet(object):
 
     def __init__(self, objective: str = 'one-class', nu: float = 0.1, rep_dim: int = 100, in_features: int = 2048):
 
-        assert objective in ('one-class', 'soft-boundary'), "Objective must be either 'one-class' or 'soft-boundary'."
+        assert objective in ('one-class', 'soft-boundary'), "Objective must be either 'one-class' or 'soft-boundary'"
         self.objective = objective
 
-        assert (0 < nu) & (nu <= 1), "For hyperparameter nu, it must hold: 0 < nu <= 1."
+        assert (0 < nu) & (nu <= 1), "For hyperparameter nu, it must hold: 0 < nu <= 1"
         self.nu = nu
 
         self.R = 0.0  # Hypersphere radius R

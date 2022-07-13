@@ -18,9 +18,10 @@
 # You should have received a copy of the GNU General Public License
 # along with DeepMet.  If not, see <https://www.gnu.org/licenses/>.
 
-import unittest
-
+import os
 from torch.utils.data import DataLoader
+
+import unittest
 
 from tests.utils import *
 from deepmet.base import *
@@ -44,7 +45,7 @@ class BaseTestCase(unittest.TestCase):
         # can't create instance of ABC
         self.assertRaises(TypeError, BaseADDataset)
 
-        # Must implement loaders
+        # check that loaders must be implemented
         class ADDDatasetWithoutLoaders(BaseADDataset):
             pass
 
@@ -85,6 +86,7 @@ class BaseTestCase(unittest.TestCase):
         # can't create instance of ABC
         self.assertRaises(TypeError, BaseTrainer)
 
+        # check we can create class that inherits from BaseTrainer when train and test are implemented
         class TrainerWithoutTrainTest(BaseTrainer):
             pass
 

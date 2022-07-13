@@ -17,29 +17,6 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with DeepMet.  If not, see <https://www.gnu.org/licenses/>.
-#
-# This file incorporates work covered by the following copyright and
-# permission notice:
-#
-#   Copyright (c) 2018 Lukas Ruff
-#
-#   Permission is hereby granted, free of charge, to any person obtaining a copy
-#   of this software and associated documentation files (the "Software"), to deal
-#   in the Software without restriction, including without limitation the rights
-#   to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-#   copies of the Software, and to permit persons to whom the Software is
-#   furnished to do so, subject to the following conditions:
-#
-#   The above copyright notice and this permission notice shall be included in all
-#   copies or substantial portions of the Software.
-#
-#   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-#   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-#   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-#   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-#   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-#   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-#   SOFTWARE.
 
 from math import sqrt
 import torch
@@ -47,6 +24,33 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from deepmet.base import BaseNet
+
+
+def build_network(net_name: str, rep_dim: int, in_features: int) -> BaseNet:
+    """
+    Builds the neural network.
+
+    :param net_name: May be one of "basic_multilayer" or "cocrystal_transformer", representing the
+        :py:meth:`deepmet.networks.BasicMultilayer` and :py:meth:`deepmet.networks.CocrystalTransformer` networks,
+        respectively.
+
+    :param rep_dim: The number of dimensions of the representation layer.
+
+    :param in_features: The number of features within the input dataset.
+
+    :return: The network class.
+    """
+
+    implemented_networks = ("basic_multilayer", "cocrystal_transformer")
+    assert net_name in implemented_networks
+
+    if net_name == "basic_multilayer":
+        net = BasicMultilayer(rep_dim=rep_dim, in_features=in_features)
+
+    elif net_name == "cocrystal_transformer":
+        net = CocrystalTransformer(rep_dim=rep_dim, in_features=in_features)
+
+    return net
 
 
 class BasicMultilayer(BaseNet):
@@ -73,35 +77,6 @@ class BasicMultilayer(BaseNet):
         x = F.relu(self.fc_output(x))
 
         return x
-
-
-def build_network(net_name: str, rep_dim: int, in_features: int) -> BasicMultilayer:
-    """
-    Builds the neural network.
-
-    :param net_name: May be one of "basic_multilayer" or "cocrystal_transformer", representing the
-        :py:meth:`deepmet.networks.BasicMultilayer` and :py:meth:`deepmet.networks.CocrystalTransformer` networks,
-        respectively.
-
-    :param rep_dim: The number of dimensions of the representation layer.
-
-    :param in_features: The number of features within the input dataset.
-
-    :return: The network class.
-    """
-
-    implemented_networks = ("basic_multilayer", "cocrystal_transformer")
-    assert net_name in implemented_networks
-
-    net = None
-
-    if net_name == "basic_multilayer":
-        net = BasicMultilayer(rep_dim=rep_dim, in_features=in_features)
-
-    elif net_name == "cocrystal_transformer":
-        net = CocrystalTransformer(rep_dim=rep_dim, in_features=in_features)
-
-    return net
 
 
 class CocrystalTransformer(BaseNet):

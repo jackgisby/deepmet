@@ -17,29 +17,6 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with DeepMet.  If not, see <https://www.gnu.org/licenses/>.
-#
-# This file incorporates work covered by the following copyright and
-# permission notice:
-#
-#   Copyright (c) 2018 Lukas Ruff
-#
-#   Permission is hereby granted, free of charge, to any person obtaining a copy
-#   of this software and associated documentation files (the "Software"), to deal
-#   in the Software without restriction, including without limitation the rights
-#   to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-#   copies of the Software, and to permit persons to whom the Software is
-#   furnished to do so, subject to the following conditions:
-#
-#   The above copyright notice and this permission notice shall be included in all
-#   copies or substantial portions of the Software.
-#
-#   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-#   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-#   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-#   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-#   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-#   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-#   SOFTWARE.
 
 import os
 import random
@@ -70,7 +47,8 @@ def unison_shuffled_copies(a: np.array, b: np.array) -> Tuple[np.array, np.array
 
 
 def get_data_from_csv(dataset_path: str, meta_path: str, shuffle: bool = True,
-                      add_labels: float = None) -> Tuple[np.array, np.array]:
+                      add_labels: Union[None, np.array, list, int] = None
+                      ) -> Tuple[np.array, np.array]:
     """
     Get fingerprints and metadata from CSV files.
 
@@ -80,11 +58,13 @@ def get_data_from_csv(dataset_path: str, meta_path: str, shuffle: bool = True,
 
     :param shuffle: Whether to shuffle the input fingerprints and labels.
 
-    :param add_labels: If None, the labels present in column three of the file at `meta_path` will be used as labels.
-        Else, `add_labels` should be a number, where 0 represents a "normal" class and any other positive integer
+    :param add_labels: If None, the labels present in column three of the file at
+        `meta_path` will be used as labels. Else, `add_labels` should be an array
+        or scalar, where 0 represents a "normal" class and any other positive integer
         represents a "non-normal" class.
 
-    :return: A tuple containing the loaded fingerprints and metadata as a numpy matrix and vector, respectively.
+    :return: A tuple containing the loaded fingerprints and metadata as a numpy matrix
+        and vector, respectively.
     """
 
     if not os.path.exists(dataset_path):
@@ -93,13 +73,16 @@ def get_data_from_csv(dataset_path: str, meta_path: str, shuffle: bool = True,
     if not os.path.exists(meta_path):
         raise FileNotFoundError
 
+    # load labels and data
     self_x_data = np.loadtxt(dataset_path, delimiter=",", comments=None)
     self_labels = np.loadtxt(meta_path, delimiter=",", dtype=str, comments=None)
 
     num_rows, num_cols = self_labels.shape
 
+    # if there are no labels, create them
     if add_labels is not None or num_cols < 3:
 
+        # if there are three columns, the third must be overriden with "add_labels"
         if num_cols == 3:
             extra_column = np.ones(num_rows, dtype=np.int)
         else:
@@ -108,13 +91,14 @@ def get_data_from_csv(dataset_path: str, meta_path: str, shuffle: bool = True,
         if add_labels is not None:
             extra_column *= add_labels
 
+        # append or replace column
         if num_cols == 3:
             self_labels[:, 2] = extra_column
-
         else:
             assert num_cols == 2
             self_labels = np.append(self_labels, extra_column, axis=1)
 
+    # shuffle the rows of the dataset
     if shuffle:
         return unison_shuffled_copies(self_x_data, self_labels)
     else:
@@ -139,14 +123,14 @@ class LoadableMolKeyDataset(LoadableDataset):
     :param labels: Group labels for each observation in `data`.
     """
 
-    def __init__(self, root: str, train_idx: Union[range, None] = None, test_idx: Union[range, None] = None,
-                 data: Union[np.array, None] = None, labels: Union[np.array, None] = None):
+    def __init__(self, root: str, data: np.array, train_idx: Union[None, range] = None,
+                 test_idx: Union[None, range] = None, labels: Union[np.array, None] = None):
         super().__init__(root)
 
         self.train_set = MolKeyDataset(root=self.root, train=True, data=data, labels=labels)
 
         if train_idx is not None:
-          self.train_set = Subset(self.train_set, train_idx)
+            self.train_set = Subset(self.train_set, train_idx)
 
         self.test_set = MolKeyDataset(root=self.root, train=False, data=data, labels=labels)
 
@@ -167,12 +151,11 @@ class MolKeyDataset(Dataset):
     :param labels: Group labels for each observation in `data`.
     """
 
-    def __init__(self, root: str, train: bool, data: Union[np.array, None] = None,
-                 labels: Union[np.array, None] = None):
+    def __init__(self, root: str, train: bool, data: np.array, labels: Union[np.array, None] = None):
         super(MolKeyDataset, self).__init__()
 
+        self.root = root
         self.train = train
-
         self.data = data
 
         if labels is None:
@@ -180,11 +163,11 @@ class MolKeyDataset(Dataset):
         else:
             self.labels = labels.astype(float)
 
-    # This is used to return a single datapoint. A requirement from pytorch
+    # this is used to return a single datapoint. A requirement from pytorch
     def __getitem__(self, index):
         return self.data[index], self.labels[index], index
 
-    # For Pytorch to know how many datapoints are in the dataset
+    # for Pytorch to know how many datapoints are in the dataset
     def __len__(self):
         return len(self.data)
 
@@ -225,17 +208,21 @@ def load_training_dataset(normal_dataset_path: str, normal_meta_path: str,
      - Metadata for the training, validation and test sets.
      - A :py:meth:`deepmet.datasets.LoadableMolKeyDataset` object containing the training set and the validation set.
     """
-    
+
+    # set seed so that "random" splits of the data are consistent
     if seed != -1:
         random.seed(seed)
         np.random.seed(seed)
 
+    # get the data as numpy arrays
     x_data, labels = get_data_from_csv(normal_dataset_path, normal_meta_path, add_labels=0)
 
+    # calculate split indices from proportions
     num_rows, num_cols = x_data.shape
     train_val_split_index = floor(num_rows * validation_split)
     train_index = range(0, train_val_split_index)
 
+    # if no test split is given, use the extra data for the validation set
     if test_split is None:
         val_test_split_index = num_rows
     else:
@@ -243,24 +230,35 @@ def load_training_dataset(normal_dataset_path: str, normal_meta_path: str,
 
     val_index = range(train_val_split_index, val_test_split_index)
 
+    # if there are non-normal data, get it and add it to the test split of the dataset
     if non_normal_dataset_path is not None:
 
-        other_x_data, other_labels = get_data_from_csv(non_normal_dataset_path, non_normal_dataset_meta_path, add_labels=1, shuffle=False)
+        other_x_data, other_labels = get_data_from_csv(
+            non_normal_dataset_path,
+            non_normal_dataset_meta_path,
+            add_labels=1,
+            shuffle=False
+        )
 
         x_data = np.concatenate([x_data, other_x_data])
         labels = np.concatenate([labels, other_labels])
 
         assert num_cols == other_x_data.shape[1]
 
+    # everything after the validation set (including non-normal data) should go to the test set
     num_rows, num_cols = x_data.shape
     test_index = range(val_test_split_index, num_rows)
 
+    # check the splits include all the data
     assert len(train_index) + len(val_index) + len(test_index) == num_rows
+
+    # check for overlaps
     for i, a in enumerate((train_index, val_index, test_index)):
         for j, b in enumerate((train_index, val_index, test_index)):
             if i != j:
                 assert all([a_item not in b for a_item in a])
 
+    # get the datasets as loadable datasets
     full_dataset = LoadableMolKeyDataset(
         root=normal_dataset_path,
         train_idx=train_index,
@@ -280,7 +278,8 @@ def load_training_dataset(normal_dataset_path: str, normal_meta_path: str,
     return full_dataset, labels, val_dataset
 
 
-def load_testing_dataset(input_dataset_path: str, input_meta_path: str) -> Tuple[LoadableMolKeyDataset, np.array]:
+def load_testing_dataset(input_dataset_path: str, input_meta_path: str
+                         ) -> Tuple[LoadableMolKeyDataset, np.array]:
     """
     Load a test set in the absence of training data.
     
