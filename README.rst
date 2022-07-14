@@ -1,6 +1,9 @@
 DeepMet
 ===========
-|Version| |Py versions| |Git| |Bioconda| |Build Status| |License| |RTD doc| |codecov| |binder|
+..
+    |Version| |Py versions|  |Bioconda|  |License| |RTD doc| |codecov| |binder|
+
+|Git| |Build Status|
 
 A deep one class model for the identification of endogenous metabolites.
 
