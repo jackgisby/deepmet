@@ -11,6 +11,11 @@ Command line
 
     $ deepmet --help
 
+Developers & Contributors
+-------------------------
+ - Ralf J. M. Weber (r.j.weber@bham.ac.uk) - `University of Birmingham (UK) <https://www.birmingham.ac.uk/staff/profiles/biosciences/weber-ralf.aspx>`_
+ - Jack Gisby (jackgisby@gmail.com) - `University of Birmingham (UK) <http://www.birmingham.ac.uk/index.aspx>`_, `Imperial College London (UK) <https://www.imperial.ac.uk/>`_
+
 Licenses
 --------
 DeepMet is licensed under the GNU General Public License v3.0 (see `LICENSE file <https://github.com/jackgisby/deepmet/blob/main/LICENSE>`_ for licensing information). Copyright © 2021 Jack Gisby, Ralf Weber
