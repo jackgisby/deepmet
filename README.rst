@@ -8,6 +8,7 @@ A deep one class model for the identification of endogenous metabolites
 Command line
 ------------
 ::
+
     $ deepmet --help
 
 Licenses
@@ -16,8 +17,8 @@ DeepMet is licensed under the GNU General Public License v3.0 (see `LICENSE file
 
 The original DeepSVDD model is licensed under the MIT license. Copies of this license may be found incorporated into the header of the relevant source code.
 
-.. |Build Status| image:: https://github.com/computational-metabolomics/deepmet/workflows/deepmet/badge.svg
-   :target: https://github.com/computational-metabolomics/deepmet/actions
+.. |Build Status| image:: https://github.com/jackgisby/deepmet/workflows/deepmet/badge.svg
+   :target: https://github.com/jackgisby/deepmet/actions
 
 .. |Py versions| image:: https://img.shields.io/pypi/pyversions/deepmet.svg?style=flat&maxAge=3600
    :target: https://pypi.python.org/pypi/deepmet/
@@ -26,7 +27,7 @@ The original DeepSVDD model is licensed under the MIT license. Copies of this li
    :target: https://pypi.python.org/pypi/deepmet/
 
 .. |Git| image:: https://img.shields.io/badge/repository-GitHub-blue.svg?style=flat&maxAge=3600
-   :target: https://github.com/computational-metabolomics/deepmet
+   :target: https://github.com/jackgisby/deepmet
 
 .. |Bioconda| image:: https://img.shields.io/badge/install%20with-bioconda-brightgreen.svg?style=flat&maxAge=3600
    :target: http://bioconda.github.io/recipes/deepmet/README.html
