@@ -3,7 +3,7 @@ DeepMet
 
 |Git| |Build Status|
 
-A deep one class model for the identification of endogenous metabolites
+A deep one class model for the identification of endogenous metabolites.
 
 Command line
 ------------
