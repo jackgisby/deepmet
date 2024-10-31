@@ -3,7 +3,7 @@ DeepMet
 
 |Git| |Build Status|
 
-A deep one class model for the identification of endogenous metabolites
+A deep one class model for the identification of endogenous metabolites.
 
 Command line
 ------------
@@ -13,8 +13,8 @@ Command line
 
 Developers & Contributors
 -------------------------
- - Ralf J. M. Weber (r.j.weber@bham.ac.uk) - `University of Birmingham (UK) <https://www.birmingham.ac.uk/staff/profiles/biosciences/weber-ralf.aspx>`_
  - Jack Gisby (jackgisby@gmail.com) - `University of Birmingham (UK) <http://www.birmingham.ac.uk/index.aspx>`_, `Imperial College London (UK) <https://www.imperial.ac.uk/>`_
+ - Ralf J. M. Weber (r.j.weber@bham.ac.uk) - `University of Birmingham (UK) <https://www.birmingham.ac.uk/staff/profiles/biosciences/weber-ralf.aspx>`_
 
 Licenses
 --------
