@@ -31,7 +31,11 @@ class NetworksTestCase(unittest.TestCase):
 
     @classmethod
     def to_test_results(cls, *args):
-        return os.path.join(os.path.dirname(os.path.realpath(__file__)), cls.temp_results_dir.name, *args)
+        return os.path.join(
+            os.path.dirname(os.path.realpath(__file__)),
+            cls.temp_results_dir.name,
+            *args
+        )
 
     @classmethod
     def setUpClass(cls):
@@ -60,5 +64,5 @@ class NetworksTestCase(unittest.TestCase):
         self.assertIsInstance(net.forward(torch.Tensor(50, 2800)), torch.Tensor)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

@@ -49,19 +49,28 @@ import numpy as np
 from json import dump
 from typing import Union, List, Tuple
 
-from deepmet.datasets import LoadableMolKeyDataset, load_testing_dataset, load_training_dataset
-from deepmet.auxiliary import get_fingerprints_from_meta, drop_selected_features, select_features
+from deepmet.datasets import (
+    LoadableMolKeyDataset,
+    load_testing_dataset,
+    load_training_dataset,
+)
+from deepmet.structures import (
+    get_fingerprints_from_meta,
+    drop_selected_features,
+    select_features,
+)
 from deepmet.auxiliary import Config
 from deepmet.core import DeepMet
 
 
 def get_likeness_scores(
-        dataset_path: str,
-        results_path: str,
-        load_model: Union[None, str] = None,
-        load_config: Union[None, str] = None,
-        input_fingerprints_path: Union[None, str] = None,
-        device: str = "cpu"
+    dataset_path: str,
+    results_path: str,
+    load_model: Union[None, str] = None,
+    load_config: Union[None, str] = None,
+    input_fingerprints_path: Union[None, str] = None,
+    filter_features: bool = True,
+    device: str = "cpu",
 ) -> List[Tuple[int, str, float]]:
     """
     Use a saved DeepMet model to score new molecules. You can load a custom model or
@@ -85,6 +94,9 @@ def get_likeness_scores(
         fingerprint generation and/or feature selection. If this argument is None,
         these will be generated from the data at `dataset_path`.
 
+    :param filter_features: If True, :py:meth:`deepmet.auxiliary.select_features` will be used to select features from
+        the input based on the Config. Else, the entire dataset will be used as input to the model.
+
     :param device: The device to be used to test the input observations. One of "cuda" or "cpu".
 
     :return: A list of tuples - these tuples contain:
@@ -96,48 +108,71 @@ def get_likeness_scores(
     if load_model is None:
         print("Model not given, using pre-trained DeepMet model and config")
 
-        load_model = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "deepmet", "data", "models", "deep_met_model.tar")
-        load_config = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "deepmet", "data", "models", "config.json")
+        load_model = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.realpath(__file__))),
+            "deepmet",
+            "data",
+            "models",
+            "deep_met_model.tar",
+        )
+        load_config = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.realpath(__file__))),
+            "deepmet",
+            "data",
+            "models",
+            "config.json",
+        )
 
     cfg = Config(locals().copy())
     cfg.load_config(import_json=load_config)
 
     # Default device to 'cpu' if cuda is not available
     if not torch.cuda.is_available():
-        print("cuda not available: defaulting to cpu")
-        device = 'cpu'
+        Warning("cuda not available: defaulting to cpu")
+        device = "cpu"
 
     # If required, computes the fingerprints from the input smiles
     if input_fingerprints_path is None:
-        input_fingerprints_path = get_fingerprints_from_meta(dataset_path, os.path.join(results_path, "input_fingerprints.csv"))
+        input_fingerprints_path = get_fingerprints_from_meta(
+            dataset_path, os.path.join(results_path, "input_fingerprints.csv")
+        )
 
-    input_fingerprints_out_path = os.path.join(results_path, "input_fingerprints_processed.csv")
+    input_fingerprints_out_path = os.path.join(
+        results_path, "input_fingerprints_processed.csv"
+    )
 
     # if config indicates that feature selection was performed during training, select the same features for the model
-    if "selected_features" in cfg.settings.keys():
-
+    if filter_features and "selected_features" in cfg.settings.keys():
         input_fingerprints_path = drop_selected_features(
             fingerprints_path=input_fingerprints_path,
             fingerprints_out_path=input_fingerprints_out_path,
-            cols_to_remove=cfg.settings["selected_features"]
+            cols_to_remove=cfg.settings["selected_features"],
         )
 
     # Load data
     dataset, dataset_labels = load_testing_dataset(
-        input_dataset_path=input_fingerprints_path,
-        input_meta_path=dataset_path
+        input_dataset_path=input_fingerprints_path, input_meta_path=dataset_path
     )
 
-    deep_met_model = DeepMet(cfg.settings['objective'], cfg.settings['nu'], cfg.settings['rep_dim'], cfg.settings['in_features'])
-    deep_met_model.set_network(cfg.settings['net_name'])
-
+    deep_met_model = DeepMet(
+        cfg.settings["objective"],
+        cfg.settings["nu"],
+        cfg.settings["rep_dim"],
+        cfg.settings["in_features"],
+    )
+    deep_met_model.set_network(cfg.settings["net_name"])
     deep_met_model.load_model(model_path=load_model)
-
     deep_met_model.test(dataset, device=device)
 
     test_scores = []
     for i in range(len(dataset_labels)):
-        test_scores.append((dataset_labels[i][0], dataset_labels[i][1], deep_met_model.trainer.test_scores[i][2]))
+        test_scores.append(
+            (
+                dataset_labels[i][0],
+                dataset_labels[i][1],
+                deep_met_model.trainer.test_scores[i][2],
+            )
+        )
 
     # dump scores to json
     with open(os.path.join(results_path, "scores.json"), "w") as out_json:
@@ -161,14 +196,19 @@ def train_single_model(cfg: Config, dataset: LoadableMolKeyDataset) -> DeepMet:
 
     logger = logging.getLogger()
 
-    if cfg.settings['seed'] != -1:
-        random.seed(cfg.settings['seed'])
-        np.random.seed(cfg.settings['seed'])
-        torch.manual_seed(cfg.settings['seed'])
-        logger.info('Set seed to %d.' % cfg.settings['seed'])
+    if cfg.settings["seed"] != -1:
+        random.seed(cfg.settings["seed"])
+        np.random.seed(cfg.settings["seed"])
+        torch.manual_seed(cfg.settings["seed"])
+        logger.info("Set seed to %d." % cfg.settings["seed"])
 
     # Initialize DeepMet model and set neural network phi
-    deep_met_model = DeepMet(cfg.settings["objective"], cfg.settings["nu"], cfg.settings["rep_dim"], cfg.settings["in_features"])
+    deep_met_model = DeepMet(
+        cfg.settings["objective"],
+        cfg.settings["nu"],
+        cfg.settings["rep_dim"],
+        cfg.settings["in_features"],
+    )
     deep_met_model.set_network(cfg.settings["net_name"])
 
     # Log training details
@@ -187,7 +227,7 @@ def train_single_model(cfg: Config, dataset: LoadableMolKeyDataset) -> DeepMet:
         lr_milestones=cfg.settings["lr_milestones"],
         batch_size=cfg.settings["batch_size"],
         weight_decay=cfg.settings["weight_decay"],
-        device=cfg.settings["device"]
+        device=cfg.settings["device"],
     )
 
     # Test model
@@ -197,26 +237,26 @@ def train_single_model(cfg: Config, dataset: LoadableMolKeyDataset) -> DeepMet:
 
 
 def train_likeness_scorer(
-        normal_meta_path: str,
-        results_path: str,
-        non_normal_meta_path: Union[None, str] = None,
-        normal_fingerprints_path: Union[None, str] = None,
-        non_normal_fingerprints_path: Union[None, str] = None,
-        net_name: str = "cocrystal_transformer",
-        objective: str = "one-class",
-        nu: float = 0.1,
-        rep_dim: int = 200,
-        device: str = "cpu",
-        seed: int = 1,
-        optimizer_name: str = "amsgrad",
-        lr: float = 0.000100095,
-        n_epochs: int = 20,
-        lr_milestones: Tuple[int] = tuple(),
-        batch_size: int = 2000,
-        weight_decay: float = 1e-5,
-        validation_split: float = 0.8,
-        test_split: Union[None, float] = 0.9,
-        filter_features: bool = True
+    normal_meta_path: str,
+    results_path: str,
+    non_normal_meta_path: Union[None, str] = None,
+    normal_fingerprints_path: Union[None, str] = None,
+    non_normal_fingerprints_path: Union[None, str] = None,
+    net_name: str = "cocrystal_transformer",
+    objective: str = "one-class",
+    nu: float = 0.1,
+    rep_dim: int = 200,
+    device: str = "cpu",
+    seed: int = 1,
+    optimizer_name: str = "amsgrad",
+    lr: float = 0.000100095,
+    n_epochs: int = 20,
+    lr_milestones: Tuple[int] = tuple(),
+    batch_size: int = 2000,
+    weight_decay: float = 1e-5,
+    validation_split: float = 0.8,
+    test_split: Union[None, float] = 0.9,
+    filter_features: bool = True,
 ):
     """
     Train a DeepMet model based only on the 'normal' structures specified. 'non-normal' structures can be supplied
@@ -298,29 +338,40 @@ def train_likeness_scorer(
     # Default device to 'cpu' if cuda is not available
     if not torch.cuda.is_available():
         print("cuda not available: defaulting to cpu")
-        device = 'cpu'
+        device = "cpu"
 
     # If required, computes the fingerprints from the input smiles
     if normal_fingerprints_path is None:
-        normal_fingerprints_path = get_fingerprints_from_meta(normal_meta_path, os.path.join(results_path, "normal_fingerprints.csv"))
+        normal_fingerprints_path = get_fingerprints_from_meta(
+            normal_meta_path, os.path.join(results_path, "normal_fingerprints.csv")
+        )
 
-    normal_fingerprints_out_path = os.path.join(results_path, "normal_fingerprints_processed.csv")
+    normal_fingerprints_out_path = os.path.join(
+        results_path, "normal_fingerprints_processed.csv"
+    )
 
     if non_normal_meta_path is None:
         non_normal_fingerprints_out_path = None
 
     else:
         if non_normal_fingerprints_path is None:
-            non_normal_fingerprints_path = get_fingerprints_from_meta(non_normal_meta_path, os.path.join(results_path, "non_normal_fingerprints.csv"))
+            non_normal_fingerprints_path = get_fingerprints_from_meta(
+                non_normal_meta_path,
+                os.path.join(results_path, "non_normal_fingerprints.csv"),
+            )
 
-        non_normal_fingerprints_out_path = os.path.join(results_path, "non_normal_fingerprints_processed.csv")
+        non_normal_fingerprints_out_path = os.path.join(
+            results_path, "non_normal_fingerprints_processed.csv"
+        )
 
     if filter_features:
-        normal_fingerprints_path, non_normal_fingerprints_paths, selected_features = select_features(
-            normal_fingerprints_path=normal_fingerprints_path,
-            normal_fingerprints_out_path=normal_fingerprints_out_path,
-            non_normal_fingerprints_paths=non_normal_fingerprints_path,
-            non_normal_fingerprints_out_paths=non_normal_fingerprints_out_path
+        normal_fingerprints_path, non_normal_fingerprints_paths, selected_features = (
+            select_features(
+                normal_fingerprints_path=normal_fingerprints_path,
+                normal_fingerprints_out_path=normal_fingerprints_out_path,
+                non_normal_fingerprints_paths=non_normal_fingerprints_path,
+                non_normal_fingerprints_out_paths=non_normal_fingerprints_out_path,
+            )
         )
 
     else:
@@ -336,33 +387,40 @@ def train_likeness_scorer(
     logging.basicConfig(level=logging.INFO)
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    formatter = logging.Formatter(
+        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    )
 
-    log_file = os.path.join(results_path, 'log.txt')
+    log_file = os.path.join(results_path, "log.txt")
     file_handler = logging.FileHandler(log_file)
     file_handler.setLevel(logging.INFO)
     file_handler.setFormatter(formatter)
     logger.addHandler(file_handler)
 
     # Print arguments
-    logger.info('Log file is %s.' % log_file)
-    logger.info('Export path is %s.' % results_path)
-    logger.info('Network: %s' % net_name)
+    logger.info("Log file is %s." % log_file)
+    logger.info("Export path is %s." % results_path)
+    logger.info("Network: %s" % net_name)
 
-    logger.info('The filtered normal fingerprint matrix path is %s.' % normal_fingerprints_path)
-    logger.info('The filtered normal meta is %s.' % normal_meta_path)
+    logger.info(
+        "The filtered normal fingerprint matrix path is %s." % normal_fingerprints_path
+    )
+    logger.info("The filtered normal meta is %s." % normal_meta_path)
 
     if non_normal_meta_path is not None:
-        logger.info('The filtered non-normal fingerprint matrix path is %s.' % non_normal_fingerprints_path)
-        logger.info('The filtered non-normal meta is %s.' % non_normal_meta_path)
+        logger.info(
+            "The filtered non-normal fingerprint matrix path is %s."
+            % non_normal_fingerprints_path
+        )
+        logger.info("The filtered non-normal meta is %s." % non_normal_meta_path)
     else:
-        logger.info('A non-normal set has not been supplied')
+        logger.info("A non-normal set has not been supplied")
 
     # Print configuration
-    logger.info('Deep SVDD objective: %s' % cfg.settings['objective'])
-    logger.info('Nu-parameter: %.2f' % cfg.settings['nu'])
+    logger.info("Deep SVDD objective: %s" % cfg.settings["objective"])
+    logger.info("Nu-parameter: %.2f" % cfg.settings["nu"])
 
-    logger.info('Computation device: %s' % device)
+    logger.info("Computation device: %s" % device)
 
     # Load data
     dataset, dataset_labels, validation_dataset = load_training_dataset(
@@ -372,11 +430,11 @@ def train_likeness_scorer(
         non_normal_dataset_meta_path=non_normal_meta_path,
         seed=seed,
         validation_split=validation_split,
-        test_split=test_split
+        test_split=test_split,
     )
 
     cfg.settings["in_features"] = dataset.train_set.dataset.data.shape[1]
-    logger.info('Number of input features: %d' % cfg.settings["in_features"])
+    logger.info("Number of input features: %d" % cfg.settings["in_features"])
 
     # Train the model (and estimate loss on the 'normal' validation set)
     deep_met_model = train_single_model(cfg, validation_dataset)
@@ -385,7 +443,10 @@ def train_likeness_scorer(
         # Test using separate test dataset (that ideally includes a set of 'non-normal' compounds)
         deep_met_model.test(dataset, device=device)
 
-        logger.info('The AUC on the test dataset is: %s' % str(deep_met_model.results["test_auc"]))
+        logger.info(
+            "The AUC on the test dataset is: %s"
+            % str(deep_met_model.results["test_auc"])
+        )
 
     # close connection to log file
     logger.removeHandler(file_handler)

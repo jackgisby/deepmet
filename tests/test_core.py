@@ -32,7 +32,11 @@ class CoreTestCase(unittest.TestCase):
 
     @classmethod
     def to_test_results(cls, *args):
-        return os.path.join(os.path.dirname(os.path.realpath(__file__)), cls.temp_results_dir.name, *args)
+        return os.path.join(
+            os.path.dirname(os.path.realpath(__file__)),
+            cls.temp_results_dir.name,
+            *args
+        )
 
     @classmethod
     def setUpClass(cls):
@@ -78,5 +82,5 @@ class CoreTestCase(unittest.TestCase):
         self.assertAlmostEqual(get_radius(c, 0.5), 3.1622776985168457, places=5)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

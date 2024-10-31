@@ -58,7 +58,7 @@ from deepmet.base import BaseADDataset, BaseNet, BaseTrainer
 
 class DeepMet(object):
     """
-    Class for the DeepSVDD method adapted for compound anomaly detection.
+    Class for the DeepSVDD method adapted for compound anomaly detection. Based on the DeepSVDD implementation by Lukas Ruff.
 
     :param objective: One of "one-class" and "soft-boundary".
 
@@ -69,9 +69,18 @@ class DeepMet(object):
     :param in_features: The number of features within the input dataset.
     """
 
-    def __init__(self, objective: str = 'one-class', nu: float = 0.1, rep_dim: int = 100, in_features: int = 2048):
+    def __init__(
+        self,
+        objective: str = "one-class",
+        nu: float = 0.1,
+        rep_dim: int = 100,
+        in_features: int = 2048,
+    ):
 
-        assert objective in ('one-class', 'soft-boundary'), "Objective must be either 'one-class' or 'soft-boundary'"
+        assert objective in (
+            "one-class",
+            "soft-boundary",
+        ), "Objective must be either 'one-class' or 'soft-boundary'"
         self.objective = objective
 
         assert (0 < nu) & (nu <= 1), "For hyperparameter nu, it must hold: 0 < nu <= 1"
@@ -90,11 +99,11 @@ class DeepMet(object):
         self.optimizer_name = None
 
         self.results = {
-            'train_time': None,
-            'test_auc': None,
-            'test_time': None,
-            'test_scores': None,
-            'test_loss': None
+            "train_time": None,
+            "test_auc": None,
+            "test_time": None,
+            "test_scores": None,
+            "test_loss": None,
         }
 
         self.visualisation = None
@@ -109,17 +118,26 @@ class DeepMet(object):
         self.net_name = net_name
         self.net = build_network(net_name, self.rep_dim, self.in_features)
 
-    def train(self, dataset: BaseADDataset, optimizer_name: str = 'adam', lr: float = 0.001, n_epochs: int = 50,
-              lr_milestones: tuple = (), batch_size: int = 128, weight_decay: float = 1e-6, device: str = 'cuda',
-              n_jobs_dataloader: int = 0):
+    def train(
+        self,
+        dataset: BaseADDataset,
+        optimizer_name: str = "adam",
+        lr: float = 0.001,
+        n_epochs: int = 50,
+        lr_milestones: tuple = (),
+        batch_size: int = 128,
+        weight_decay: float = 1e-6,
+        device: str = "cuda",
+        n_jobs_dataloader: int = 0,
+    ):
         """
         Trains the DeepMet model on the training data.
 
         :param dataset: Pytorch dataset class. May be loaded with :py:meth:`deepmet.datasets.load_training_dataset`.
 
         :param optimizer_name: Optimisation method for training the network. Set to "amsgrad" to use the AMSGrad variant
-            of the adam optimisation algorithm. 
-            
+            of the adam optimisation algorithm.
+
         :param lr: Learning rate of the optimisation process.
 
         :param n_epochs: Number of epochs to be used in the training process.
@@ -132,15 +150,26 @@ class DeepMet(object):
 
         :param weight_decay: The L2 penalty to be applied to weights during the training phase.
 
-        :param device: The device to be used to train the model. One of "cuda" or "cpu".
+        :param device: The device to be used to train the model. E.g., "cuda" or "cpu".
 
         :param n_jobs_dataloader: The number of cpus to be utilised when loading the training and test sets.
         """
 
         self.optimizer_name = optimizer_name
-        self.trainer = DeepMetTrainer(self.objective, self.R, self.c, self.nu, optimizer_name, lr=lr,
-                                      n_epochs=n_epochs, lr_milestones=lr_milestones, batch_size=batch_size,
-                                      weight_decay=weight_decay, device=device, n_jobs_dataloader=n_jobs_dataloader)
+        self.trainer = DeepMetTrainer(
+            self.objective,
+            self.R,
+            self.c,
+            self.nu,
+            optimizer_name,
+            lr=lr,
+            n_epochs=n_epochs,
+            lr_milestones=lr_milestones,
+            batch_size=batch_size,
+            weight_decay=weight_decay,
+            device=device,
+            n_jobs_dataloader=n_jobs_dataloader,
+        )
 
         # Get the model
         self.net = self.trainer.train(dataset, self.net)
@@ -148,11 +177,16 @@ class DeepMet(object):
         self.c = self.trainer.c.cpu().data.numpy().tolist()  # Get list
 
         # Save results
-        self.results['train_time'] = self.trainer.train_time
-        self.results['R'] = self.R
-        self.results['c'] = self.c
+        self.results["train_time"] = self.trainer.train_time
+        self.results["R"] = self.R
+        self.results["c"] = self.c
 
-    def test(self, dataset: BaseADDataset, device: str = 'cuda', n_jobs_dataloader: int = 0):
+    def test(
+        self,
+        dataset: BaseADDataset,
+        device: Union[str, None] = None,
+        n_jobs_dataloader: Union[int, None] = None,
+    ) -> dict:
         """
         Tests the DeepMet model on the test data. Calls :py:meth:`deepmet.core.DeepMetTrainer` to carry out the
         training process.
@@ -165,17 +199,35 @@ class DeepMet(object):
         """
 
         if self.trainer is None:
-            self.trainer = DeepMetTrainer(self.objective, self.R, self.c, self.nu,
-                                          device=device, n_jobs_dataloader=n_jobs_dataloader)
+            self.trainer = DeepMetTrainer(
+                self.objective,
+                self.R,
+                self.c,
+                self.nu,
+                self.optimizer_name,
+                device=device,
+                n_jobs_dataloader=n_jobs_dataloader,
+            )
+        self.trainer.test(dataset, self.net, device, n_jobs_dataloader)
 
-        # Test the model
-        self.trainer.test(dataset, self.net)
+        self.results["test_auc"] = self.trainer.test_auc
+        self.results["test_time"] = self.trainer.test_time
+        self.results["test_scores"] = self.trainer.test_scores
+        self.results["test_loss"] = self.trainer.test_loss
 
-        # Get results
-        self.results['test_auc'] = self.trainer.test_auc
-        self.results['test_time'] = self.trainer.test_time
-        self.results['test_scores'] = self.trainer.test_scores
-        self.results['test_loss'] = self.trainer.test_loss
+        return self.results
+
+    def get_embedding(self, dataset: BaseADDataset) -> np.array:
+        """
+        Get the latent space representation of the input data.
+
+        :param dataset: Pytorch dataset class. May be loaded with :py:meth:`deepmet.datasets.load_testing_dataset`.
+
+        :return: The latent space representation of the input data.
+        """
+
+        assert self.trainer is not None, "Trainer attribute must be set before testing."
+        return self.trainer.get_embedding(dataset, self.net)
 
     def save_model(self, export_model: Union[str, os.PathLike, BinaryIO]):
         """
@@ -185,11 +237,7 @@ class DeepMet(object):
         """
 
         net_dict = self.net.state_dict()
-
-        torch.save({'R': self.R,
-                    'c': self.c,
-                    'net_dict': net_dict},
-                   export_model)
+        torch.save({"R": self.R, "c": self.c, "net_dict": net_dict}, export_model)
 
     def load_model(self, model_path: str):
         """
@@ -200,9 +248,9 @@ class DeepMet(object):
 
         model_dict = torch.load(model_path)
 
-        self.R = model_dict['R']
-        self.c = model_dict['c']
-        self.net.load_state_dict(model_dict['net_dict'])
+        self.R = model_dict["R"]
+        self.c = model_dict["c"]
+        self.net.load_state_dict(model_dict["net_dict"])
 
     def save_results(self, export_json: str):
         """
@@ -211,13 +259,13 @@ class DeepMet(object):
         :param export_json: Path at which to save the results.
         """
 
-        with open(export_json, 'w') as fp:
+        with open(export_json, "w") as fp:
             json.dump(self.results, fp)
 
 
 class DeepMetTrainer(BaseTrainer):
     """
-    Trainer for the :py:meth:`deepmet.core.DeepMet` model.
+    Trainer for the :py:meth:`deepmet.core.DeepMet` model. Based on the DeepSVDD implementation by Lukas Ruff.
 
     :param objective: One of "one-class" and "soft-boundary".
 
@@ -247,24 +295,50 @@ class DeepMetTrainer(BaseTrainer):
     :param n_jobs_dataloader: The number of cpus to be utilised when loading the training and test sets.
     """
 
-    def __init__(self, objective, R, c, nu: float, optimizer_name: str = 'adam',
-                 lr: float = 0.001, n_epochs: int = 150, lr_milestones: tuple = (),
-                 batch_size: int = 128, weight_decay: float = 1e-6, device: str = 'cuda',
-                 n_jobs_dataloader: int = 0):
+    def __init__(
+        self,
+        objective,
+        R,
+        c,
+        nu: float,
+        optimizer_name: str = "adam",
+        lr: float = 0.001,
+        n_epochs: int = 150,
+        lr_milestones: tuple = (),
+        batch_size: int = 128,
+        weight_decay: float = 1e-6,
+        device: str = "cuda",
+        n_jobs_dataloader: int = 0,
+    ):
+        if n_jobs_dataloader is None:
+            n_jobs_dataloader = 1
 
-        super().__init__(optimizer_name, lr, n_epochs, lr_milestones, batch_size,
-                         weight_decay, device, n_jobs_dataloader)
+        super().__init__(
+            optimizer_name,
+            lr,
+            n_epochs,
+            lr_milestones,
+            batch_size,
+            weight_decay,
+            device,
+            n_jobs_dataloader,
+        )
 
-        assert objective in ('one-class', 'soft-boundary'), "Objective must be either 'one-class' or 'soft-boundary'."
+        assert objective in (
+            "one-class",
+            "soft-boundary",
+        ), "Objective must be either 'one-class' or 'soft-boundary'."
         self.objective = objective
 
         # Parameters
-        self.R = torch.tensor(R, device=self.device)  # radius R initialized with 0 by default.
+        self.R = torch.tensor(
+            R, device=self.device
+        )  # radius R initialized with 0 by default.
         self.c = torch.tensor(c, device=self.device) if c is not None else None
         self.nu = nu
 
-        # optimisation parameters
-        self.warm_up_n_epochs = 10  # number of training epochs for soft-boundary Deep SVDD before radius R gets updated
+        # Optimisation parameters
+        self.warm_up_n_epochs = 10  # Number of training epochs for soft-boundary Deep SVDD before radius R gets updated
 
         # Results
         self.train_time = None
@@ -293,34 +367,39 @@ class DeepMetTrainer(BaseTrainer):
         net = net.to(self.device)
 
         # Get train data loader
-        train_loader, _ = dataset.loaders(batch_size=self.batch_size, num_workers=self.n_jobs_dataloader)
+        train_loader, _ = dataset.loaders(
+            batch_size=self.batch_size, num_workers=self.n_jobs_dataloader
+        )
 
         # Set optimizer (Adam optimizer for now)
-        optimizer = optim.Adam(net.parameters(), lr=self.lr, weight_decay=self.weight_decay,
-                               amsgrad=self.optimizer_name == 'amsgrad')
+        optimizer = optim.Adam(
+            net.parameters(),
+            lr=self.lr,
+            weight_decay=self.weight_decay,
+            amsgrad=self.optimizer_name == "amsgrad",
+        )
 
         # Set learning rate scheduler
-        scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=self.lr_milestones, gamma=0.2)
+        scheduler = optim.lr_scheduler.MultiStepLR(
+            optimizer, milestones=self.lr_milestones, gamma=0.2
+        )
 
         # Initialize hypersphere center c (if c not loaded)
         if self.c is None:
-            logger.info('Initializing center c...')
+            logger.info("Initializing center c...")
             self.c = self.init_center_c(train_loader, net)
-            logger.info('Center c initialized.')
+            logger.info("Center c initialized.")
 
         # Training
-        logger.info('Starting training...')
+        logger.info("Starting training...")
         start_time = time.time()
         net.train()
         for epoch in range(self.n_epochs):
 
-            scheduler.step()
-            if epoch in self.lr_milestones:
-                logger.info('  LR scheduler: new learning rate is %g' % float(scheduler.get_lr()[0]))
-
             loss_epoch = 0.0
             n_batches = 0
             epoch_start_time = time.time()
+
             for data in train_loader:
                 inputs, _, _ = data
                 inputs = inputs.to(self.device)
@@ -333,9 +412,11 @@ class DeepMetTrainer(BaseTrainer):
                 dist = torch.sum((outputs - self.c) ** 2, dim=1)
 
                 # SVDD loss function
-                if self.objective == 'soft-boundary':
-                    scores = dist - self.R ** 2
-                    loss = self.R ** 2 + (1 / self.nu) * torch.mean(torch.max(torch.zeros_like(scores), scores))
+                if self.objective == "soft-boundary":
+                    scores = dist - self.R**2
+                    loss = self.R**2 + (1 / self.nu) * torch.mean(
+                        torch.max(torch.zeros_like(scores), scores)
+                    )
                 else:
                     loss = torch.mean(dist)
 
@@ -343,25 +424,45 @@ class DeepMetTrainer(BaseTrainer):
                 optimizer.step()
 
                 # Update hypersphere radius R on mini-batch distances
-                if (self.objective == 'soft-boundary') and (epoch >= self.warm_up_n_epochs):
-                    self.R.data = torch.tensor(get_radius(dist, self.nu), device=self.device)
+                if (self.objective == "soft-boundary") and (
+                    epoch >= self.warm_up_n_epochs
+                ):
+                    self.R.data = torch.tensor(
+                        get_radius(dist, self.nu), device=self.device
+                    )
 
                 loss_epoch += loss.item()
                 n_batches += 1
 
             # log epoch statistics
             epoch_train_time = time.time() - epoch_start_time
-            logger.info('  Epoch {}/{}\t Time: {:.3f}\t Loss: {:.8f}'
-                        .format(epoch + 1, self.n_epochs, epoch_train_time, loss_epoch / n_batches))
+            logger.info(
+                "  Epoch {}/{}\t Time: {:.3f}\t Loss: {:.8f}".format(
+                    epoch + 1, self.n_epochs, epoch_train_time, loss_epoch / n_batches
+                )
+            )
+
+            # scheduler / learning rate update
+            scheduler.step()
+            if epoch in self.lr_milestones:
+                logger.info(
+                    "  LR scheduler: new learning rate is %g"
+                    % float(scheduler.get_lr()[0])
+                )
 
         self.train_time = time.time() - start_time
-        logger.info('Training time: %.3f' % self.train_time)
-
-        logger.info('Finished training.')
+        logger.info("Training time: %.3f" % self.train_time)
+        logger.info("Training complete")
 
         return net
 
-    def test(self, dataset: BaseADDataset, net: BaseNet):
+    def test(
+        self,
+        dataset: BaseADDataset,
+        net: BaseNet,
+        device: Union[str, None] = None,
+        n_jobs_dataloader: Union[int, None] = None,
+    ):
         """
         Method for testing the :py:meth:`deepmet.core.DeepMet` model.
 
@@ -369,18 +470,30 @@ class DeepMetTrainer(BaseTrainer):
             :py:meth:`deepmet.datasets.load_testing_dataset`.
 
         :param net: The network to use for testing.
+
+        :param device: The device to be used to train the model. E.g., "cuda" or "cpu".
+
+        :param n_jobs_dataloader: The number of cpus to be utilised when loading the training and test sets.
         """
 
         logger = logging.getLogger()
+
+        if device is not None:
+            self.device = device
+
+        if n_jobs_dataloader is not None:
+            self.n_jobs_dataloader = n_jobs_dataloader
 
         # Set device for network
         net = net.to(self.device)
 
         # Get test data loader
-        _, test_loader = dataset.loaders(batch_size=self.batch_size, num_workers=self.n_jobs_dataloader)
+        _, test_loader = dataset.loaders(
+            batch_size=self.batch_size, num_workers=self.n_jobs_dataloader
+        )
 
         # Testing
-        logger.info('Starting testing...')
+        logger.info("Starting testing...")
         loss_epoch = 0.0
         n_batches = 0
         start_time = time.time()
@@ -394,26 +507,30 @@ class DeepMetTrainer(BaseTrainer):
                 outputs = net(inputs.float())
                 dist = torch.sum((outputs - self.c) ** 2, dim=1)
 
-                if self.objective == 'soft-boundary':
-                    scores = dist - self.R ** 2
+                if self.objective == "soft-boundary":
+                    scores = dist - self.R**2
                 else:
                     scores = dist
 
                 loss = torch.mean(dist)
 
                 # Save triples of (idx, label, score) in a list
-                idx_label_score += list(zip(idx.cpu().data.numpy().tolist(),
-                                            labels.cpu().data.numpy().tolist(),
-                                            scores.cpu().data.numpy().tolist()))
+                idx_label_score += list(
+                    zip(
+                        idx.cpu().data.numpy().tolist(),
+                        labels.cpu().data.numpy().tolist(),
+                        scores.cpu().data.numpy().tolist(),
+                    )
+                )
 
                 loss_epoch += loss.item()
                 n_batches += 1
 
         self.test_loss = loss_epoch / n_batches
-        logger.info('Test set Loss: {:.8f}'.format(self.test_loss))
+        logger.info("Test set Loss: {:.8f}".format(self.test_loss))
 
         self.test_time = time.time() - start_time
-        logger.info('Testing time: %.3f' % self.test_time)
+        logger.info("Testing time: %.3f" % self.test_time)
 
         self.test_scores = idx_label_score
 
@@ -424,14 +541,57 @@ class DeepMetTrainer(BaseTrainer):
 
         try:
             self.test_auc = roc_auc_score(labels, scores)
-            logger.info('Test set AUC: {:.2f}%'.format(100. * self.test_auc))
+            logger.info("Test set AUC: {:.2f}%".format(100.0 * self.test_auc))
 
         except ValueError:
             self.test_auc = None
 
-        logger.info('Finished testing.')
+        logger.info("Finished testing.")
 
-    def init_center_c(self, train_loader: DataLoader, net: BaseNet, eps=0.1) -> torch.Tensor:
+    def get_embedding(self, dataset: BaseADDataset, net: BaseNet) -> np.array:
+        """
+        Get the latent space representation of the input data.
+
+        :param dataset: Pytorch dataset class. May be loaded with :py:meth:`deepmet.datasets.load_testing_dataset`.
+
+        :param net: The network to use for testing.
+
+        :return: The latent space representation of the input data.
+        """
+
+        logger = logging.getLogger()
+        net = net.to(self.device)
+
+        # Get test data loader
+        _, test_loader = dataset.loaders(
+            batch_size=self.batch_size, num_workers=self.n_jobs_dataloader
+        )
+
+        # Get model outputs
+        logger.info("Starting embedding...")
+        start_time = time.time()
+        embedding = []
+        net.eval()
+        with torch.no_grad():
+            for data in test_loader:
+
+                inputs, _, _ = data
+                inputs = inputs.to(self.device)
+                outputs = net(inputs.float())
+                embedding.append(outputs.cpu().data.numpy())
+
+        embedding = np.concatenate(embedding, axis=0)
+
+        self.test_time = time.time() - start_time
+        logger.info("Embedding time: %.3f" % self.test_time)
+
+        logger.info("Finished embedding.")
+
+        return embedding
+
+    def init_center_c(
+        self, train_loader: DataLoader, net: BaseNet, eps=0.1
+    ) -> torch.Tensor:
         """
         Initialize hypersphere center c as the mean from an initial forward pass on the data.
 

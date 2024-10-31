@@ -26,6 +26,8 @@ from typing import Union, Tuple
 from torch.utils.data import Dataset, Subset
 
 from deepmet.base import LoadableDataset
+from deepmet.structures import select_features, drop_selected_features
+import tempfile
 
 
 def unison_shuffled_copies(a: np.array, b: np.array) -> Tuple[np.array, np.array]:
@@ -46,9 +48,12 @@ def unison_shuffled_copies(a: np.array, b: np.array) -> Tuple[np.array, np.array
     return a[p], b[p]
 
 
-def get_data_from_csv(dataset_path: str, meta_path: str, shuffle: bool = True,
-                      add_labels: Union[None, np.array, list, int] = None
-                      ) -> Tuple[np.array, np.array]:
+def get_data_from_csv(
+    dataset_path: str,
+    meta_path: str,
+    shuffle: bool = True,
+    add_labels: Union[None, np.array, list, int] = None,
+) -> Tuple[np.array, np.array]:
     """
     Get fingerprints and metadata from CSV files.
 
@@ -82,21 +87,20 @@ def get_data_from_csv(dataset_path: str, meta_path: str, shuffle: bool = True,
     # if there are no labels, create them
     if add_labels is not None or num_cols < 3:
 
-        # if there are three columns, the third must be overriden with "add_labels"
-        if num_cols == 3:
-            extra_column = np.ones(num_rows, dtype=np.int)
-        else:
-            extra_column = np.ones((num_rows, 1), dtype=np.int)
+        extra_column = np.ones(num_rows, dtype=int)
 
         if add_labels is not None:
-            extra_column *= add_labels
+            if isinstance(add_labels, (int, float)):
+                extra_column *= add_labels
+            else:
+                extra_column = np.array(add_labels)
 
         # append or replace column
         if num_cols == 3:
             self_labels[:, 2] = extra_column
         else:
-            assert num_cols == 2
-            self_labels = np.append(self_labels, extra_column, axis=1)
+            assert num_cols == 2, "Metadata file should have 2 or 3 columns"
+            self_labels = np.append(self_labels, extra_column[:, None], axis=1)
 
     # shuffle the rows of the dataset
     if shuffle:
@@ -123,16 +127,26 @@ class LoadableMolKeyDataset(LoadableDataset):
     :param labels: Group labels for each observation in `data`.
     """
 
-    def __init__(self, root: str, data: np.array, train_idx: Union[None, range] = None,
-                 test_idx: Union[None, range] = None, labels: Union[np.array, None] = None):
+    def __init__(
+        self,
+        root: str,
+        data: np.array,
+        train_idx: Union[None, range] = None,
+        test_idx: Union[None, range] = None,
+        labels: Union[np.array, None] = None,
+    ):
         super().__init__(root)
 
-        self.train_set = MolKeyDataset(root=self.root, train=True, data=data, labels=labels)
+        self.train_set = MolKeyDataset(
+            root=self.root, train=True, data=data, labels=labels
+        )
 
         if train_idx is not None:
             self.train_set = Subset(self.train_set, train_idx)
 
-        self.test_set = MolKeyDataset(root=self.root, train=False, data=data, labels=labels)
+        self.test_set = MolKeyDataset(
+            root=self.root, train=False, data=data, labels=labels
+        )
 
         if test_idx is not None:
             self.test_set = Subset(self.test_set, test_idx)
@@ -151,7 +165,13 @@ class MolKeyDataset(Dataset):
     :param labels: Group labels for each observation in `data`.
     """
 
-    def __init__(self, root: str, train: bool, data: np.array, labels: Union[np.array, None] = None):
+    def __init__(
+        self,
+        root: str,
+        train: bool,
+        data: np.array,
+        labels: Union[np.array, None] = None,
+    ):
         super(MolKeyDataset, self).__init__()
 
         self.root = root
@@ -172,11 +192,15 @@ class MolKeyDataset(Dataset):
         return len(self.data)
 
 
-def load_training_dataset(normal_dataset_path: str, normal_meta_path: str,
-                          non_normal_dataset_path: Union[None, str] = None,
-                          non_normal_dataset_meta_path: Union[None, str] = None, seed: int = 1,
-                          validation_split: float = 0.8, test_split: Union[None, float] = 0.9
-                          ) -> Tuple[LoadableMolKeyDataset, np.array, LoadableMolKeyDataset]:
+def load_training_dataset(
+    normal_dataset_path: str,
+    normal_meta_path: str,
+    non_normal_dataset_path: Union[None, str] = None,
+    non_normal_dataset_meta_path: Union[None, str] = None,
+    seed: int = 1,
+    validation_split: float = 0.8,
+    test_split: Union[None, float] = 0.9,
+) -> Tuple[LoadableMolKeyDataset, np.array, LoadableMolKeyDataset]:
     """
     Gets pytorch dataset classes for training and testing. A set of "normal" compounds must be supplied for use as a
     training dataset. Some of these structures must be reserved for the validation dataset and some may also be used
@@ -214,8 +238,17 @@ def load_training_dataset(normal_dataset_path: str, normal_meta_path: str,
         random.seed(seed)
         np.random.seed(seed)
 
-    # get the data as numpy arrays
-    x_data, labels = get_data_from_csv(normal_dataset_path, normal_meta_path, add_labels=0)
+    # Remove no/low-variance features from the dataset
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".csv") as temp_file:
+        selected_normal_fingerprints_path, _, cols_to_remove = select_features(
+            normal_fingerprints_path=normal_dataset_path,
+            normal_fingerprints_out_path=temp_file.name,
+        )
+
+        # get the data as a numpy array
+        x_data, labels = get_data_from_csv(
+            selected_normal_fingerprints_path, normal_meta_path, add_labels=0
+        )
 
     # calculate split indices from proportions
     num_rows, num_cols = x_data.shape
@@ -233,11 +266,21 @@ def load_training_dataset(normal_dataset_path: str, normal_meta_path: str,
     # if there are non-normal data, get it and add it to the test split of the dataset
     if non_normal_dataset_path is not None:
 
+        with tempfile.NamedTemporaryFile(
+            delete=False, suffix=".csv"
+        ) as temp_file_non_norm:
+
+            selected_non_normal_dataset_path = drop_selected_features(
+                fingerprints_path=non_normal_dataset_path,
+                fingerprints_out_path=temp_file_non_norm.name,
+                cols_to_remove=cols_to_remove,
+            )
+
         other_x_data, other_labels = get_data_from_csv(
-            non_normal_dataset_path,
+            selected_non_normal_dataset_path,
             non_normal_dataset_meta_path,
             add_labels=1,
-            shuffle=False
+            shuffle=False,
         )
 
         x_data = np.concatenate([x_data, other_x_data])
@@ -264,7 +307,7 @@ def load_training_dataset(normal_dataset_path: str, normal_meta_path: str,
         train_idx=train_index,
         test_idx=test_index,
         data=x_data,
-        labels=labels[:, 2]
+        labels=labels[:, 2],
     )
 
     val_dataset = LoadableMolKeyDataset(
@@ -272,17 +315,18 @@ def load_training_dataset(normal_dataset_path: str, normal_meta_path: str,
         train_idx=train_index,
         test_idx=val_index,
         data=x_data,
-        labels=labels[:, 2]
+        labels=labels[:, 2],
     )
 
     return full_dataset, labels, val_dataset
 
 
-def load_testing_dataset(input_dataset_path: str, input_meta_path: str
-                         ) -> Tuple[LoadableMolKeyDataset, np.array]:
+def load_testing_dataset(
+    input_dataset_path: str, input_meta_path: str
+) -> Tuple[LoadableMolKeyDataset, np.array]:
     """
     Load a test set in the absence of training data.
-    
+
     :param input_dataset_path: Path to the fingerprints of the input structures, as a CSV file.
 
     :param input_meta_path: Path to the metadata for the input structures, as a CSV file.
@@ -292,9 +336,13 @@ def load_testing_dataset(input_dataset_path: str, input_meta_path: str
      - Metadata for the training, validation and test sets.
     """
 
-    x_data, labels = get_data_from_csv(input_dataset_path, input_meta_path, shuffle=False)
+    x_data, labels = get_data_from_csv(
+        input_dataset_path, input_meta_path, shuffle=False
+    )
     num_rows, num_cols = x_data.shape
 
-    full_dataset = LoadableMolKeyDataset(root=input_dataset_path, data=x_data, labels=np.zeros((num_rows, 1)))
+    full_dataset = LoadableMolKeyDataset(
+        root=input_dataset_path, data=x_data, labels=np.zeros((num_rows, 1))
+    )
 
     return full_dataset, labels

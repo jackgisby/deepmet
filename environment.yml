@@ -1,16 +1,20 @@
 name:
   DeepMet
 channels:
-  - defaults
   - pytorch
+  - nvidia
+  - defaults
   - conda-forge
 dependencies:
-  - python=3.8
-  - numpy=1.22.3
-  - pytorch=1.7.0
-  - jpype1=1.2.1
-  - Click=7.1.2
-  - rdkit=2022.03.4
-  - cdk=2.5
-  - scikit-learn=0.24.2
-  - conda-forge::openjdk=11.0.15
+  - python
+  - numpy
+  - pytorch
+  - pytorch-cuda=11.8
+  - jpype1
+  - Click
+  - rdkit
+  - cdk
+  - scikit-learn
+  - conda-forge::openjdk
+  - conda-forge::pyod
+  - seaborn

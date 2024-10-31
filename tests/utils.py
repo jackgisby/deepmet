@@ -32,12 +32,18 @@ def make_temp_results_dir():
     :return: Path of the temporary directory.
     """
 
-    temp_results_dir = tempfile.TemporaryDirectory(dir=os.path.dirname(os.path.realpath(__file__)))
+    temp_results_dir = tempfile.TemporaryDirectory(
+        dir=os.path.dirname(os.path.realpath(__file__))
+    )
 
     # create a copy of relevant data in the test's temporary folder
     copytree(
-        os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "deepmet", "data"),
-        os.path.join(temp_results_dir.name, "data")
+        os.path.join(
+            os.path.dirname(os.path.dirname(os.path.realpath(__file__))),
+            "deepmet",
+            "data",
+        ),
+        os.path.join(temp_results_dir.name, "data"),
     )
 
     return temp_results_dir
@@ -77,7 +83,9 @@ def get_meta_subset(full_meta_path, reduced_meta_path, sample_size=200):
     return reduced_meta_path
 
 
-def get_normal_non_normal_subsets(test_results_path, seed=1, normal_sample_size=500, non_normal_sample_size=50):
+def get_normal_non_normal_subsets(
+    test_results_path, seed=1, normal_sample_size=500, non_normal_sample_size=50
+):
     """
     Get a subset of the endogenous metabolites in HMDB and structures in the ZINC12 database.
 
@@ -94,14 +102,14 @@ def get_normal_non_normal_subsets(test_results_path, seed=1, normal_sample_size=
     reduced_normal_meta_path = get_meta_subset(
         os.path.join(test_results_path, "data", "test_set", "hmdb_meta.csv"),
         os.path.join(test_results_path, "normal_meta.csv"),
-        sample_size=normal_sample_size
+        sample_size=normal_sample_size,
     )
 
     np.random.seed(seed)
     reduced_non_normal_meta_path = get_meta_subset(
         os.path.join(test_results_path, "data", "test_set", "zinc_meta.csv"),
         os.path.join(test_results_path, "non_normal_meta.csv"),
-        sample_size=non_normal_sample_size
+        sample_size=non_normal_sample_size,
     )
 
     return reduced_normal_meta_path, reduced_non_normal_meta_path

@@ -33,7 +33,11 @@ class CLITestCase(unittest.TestCase):
 
     @classmethod
     def to_test_results(cls, *args):
-        return os.path.join(os.path.dirname(os.path.realpath(__file__)), cls.temp_results_dir.name, *args)
+        return os.path.join(
+            os.path.dirname(os.path.realpath(__file__)),
+            cls.temp_results_dir.name,
+            *args
+        )
 
     @classmethod
     def setUpClass(cls):
@@ -43,14 +47,13 @@ class CLITestCase(unittest.TestCase):
 
         # get a CliRunner to test the command line
         cls.runner = CliRunner()
-        
+
         # create temporary directory for testing
         cls.temp_results_dir = make_temp_results_dir()
 
         # get a subset of the full input data
         cls.normal_meta_path, cls.non_normal_meta_path = get_normal_non_normal_subsets(
-            cls.to_test_results(),
-            normal_sample_size=50
+            cls.to_test_results(), normal_sample_size=50
         )
 
         # create a folder for a newly trained model
@@ -78,7 +81,7 @@ class CLITestCase(unittest.TestCase):
             weight_decay=1e-5,
             validation_split=0.8,
             test_split=None,
-            filter_features=True
+            filter_features=True,
         )
 
         # perform scoring using the new model
@@ -87,7 +90,7 @@ class CLITestCase(unittest.TestCase):
             results_path=cls.deepmet_results_path,
             load_model=os.path.join(cls.deepmet_results_path, "model.tar"),
             load_config=os.path.join(cls.deepmet_results_path, "config.json"),
-            device="cpu"
+            device="cpu",
         )
 
     def test_cli(self):
@@ -104,21 +107,31 @@ class CLITestCase(unittest.TestCase):
         score_help = self.runner.invoke(score, ["--help"])
 
         self.assertEqual(score_help.exit_code, 0)
-        self.assertEqual(score_help.output[0:39], "Usage: score [OPTIONS] NORMAL_META_PATH")
+        self.assertEqual(
+            score_help.output[0:39], "Usage: score [OPTIONS] NORMAL_META_PATH"
+        )
 
         # try scoring with model
         os.mkdir(self.to_test_results("cli_scoring_results"))
 
-        score_with_model = self.runner.invoke(score, [
-            self.non_normal_meta_path,
-            "--output_path", self.to_test_results("cli_scoring_results"),
-            "--load_model", os.path.join(self.deepmet_results_path, "model.tar"),
-            "--load_config", os.path.join(self.deepmet_results_path, "config.json")
-        ])
+        score_with_model = self.runner.invoke(
+            score,
+            [
+                self.non_normal_meta_path,
+                "--output_path",
+                self.to_test_results("cli_scoring_results"),
+                "--load_model",
+                os.path.join(self.deepmet_results_path, "model.tar"),
+                "--load_config",
+                os.path.join(self.deepmet_results_path, "config.json"),
+            ],
+        )
 
         self.assertEqual(score_with_model.exit_code, 0)
 
-        with open(self.to_test_results("cli_scoring_results", "scores.json"), "r") as scores_json:
+        with open(
+            self.to_test_results("cli_scoring_results", "scores.json"), "r"
+        ) as scores_json:
             cli_scores = load(scores_json)
 
         for cli_score, deepmet_score in zip(cli_scores, self.deepmet_scores):
@@ -126,10 +139,14 @@ class CLITestCase(unittest.TestCase):
             self.assertAlmostEqual(cli_score[2], deepmet_score[2], places=5)
 
         # check without load_ arguments
-        score_no_model = self.runner.invoke(score, [
-            self.non_normal_meta_path,
-            "--output_path", self.to_test_results("cli_scoring_results")
-        ])
+        score_no_model = self.runner.invoke(
+            score,
+            [
+                self.non_normal_meta_path,
+                "--output_path",
+                self.to_test_results("cli_scoring_results"),
+            ],
+        )
 
         self.assertEqual(score_no_model.exit_code, 0)
 
@@ -139,35 +156,54 @@ class CLITestCase(unittest.TestCase):
         train_help = self.runner.invoke(train, ["--help"])
 
         self.assertEqual(train_help.exit_code, 0)
-        self.assertEqual(train_help.output[0:39], "Usage: train [OPTIONS] NORMAL_META_PATH")
+        self.assertEqual(
+            train_help.output[0:39], "Usage: train [OPTIONS] NORMAL_META_PATH"
+        )
 
         # create model
         os.mkdir(self.to_test_results("cli_training_results"))
 
-        train_model = self.runner.invoke(train, [
-            self.normal_meta_path,
-            "--output_path", self.to_test_results("cli_training_results"),
-            "--non_normal_path", self.non_normal_meta_path,
-            "--lr", 0.000100095,
-            "--batch_size", 10,
-            "--optimizer_name", "amsgrad",
-            "--seed", 1
-        ])
+        train_model = self.runner.invoke(
+            train,
+            [
+                self.normal_meta_path,
+                "--output_path",
+                self.to_test_results("cli_training_results"),
+                "--non_normal_path",
+                self.non_normal_meta_path,
+                "--lr",
+                0.000100095,
+                "--batch_size",
+                10,
+                "--optimizer_name",
+                "amsgrad",
+                "--seed",
+                1,
+            ],
+        )
 
         self.assertEqual(train_model.exit_code, 0)
 
         # get the scores for the newly trained model
-        score_cli_model = self.runner.invoke(score, [
-            self.non_normal_meta_path,
-            "--output_path", self.to_test_results("cli_training_results"),
-            "--load_model", self.to_test_results("cli_training_results", "model.tar"),
-            "--load_config", self.to_test_results("cli_training_results", "config.json")
-        ])
+        score_cli_model = self.runner.invoke(
+            score,
+            [
+                self.non_normal_meta_path,
+                "--output_path",
+                self.to_test_results("cli_training_results"),
+                "--load_model",
+                self.to_test_results("cli_training_results", "model.tar"),
+                "--load_config",
+                self.to_test_results("cli_training_results", "config.json"),
+            ],
+        )
 
         self.assertEqual(score_cli_model.exit_code, 0)
 
         # check scores match expected
-        with open(self.to_test_results("cli_training_results", "scores.json"), "r") as scores_json:
+        with open(
+            self.to_test_results("cli_training_results", "scores.json"), "r"
+        ) as scores_json:
             cli_scores = load(scores_json)
 
         for cli_score, deepmet_score in zip(cli_scores, self.deepmet_scores):
@@ -175,5 +211,5 @@ class CLITestCase(unittest.TestCase):
             self.assertAlmostEqual(cli_score[2], deepmet_score[2], places=5)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

@@ -26,7 +26,7 @@ from torch.utils.data import DataLoader
 
 
 class BaseADDataset(ABC):
-    """ Anomaly detection dataset base class. """
+    """Anomaly detection dataset base class."""
 
     def __init__(self, root: str):
         super().__init__()
@@ -40,7 +40,9 @@ class BaseADDataset(ABC):
         self.test_set = None
 
     @abstractmethod
-    def loaders(self, batch_size: int, num_workers: int = 0) -> (DataLoader, DataLoader):
+    def loaders(
+        self, batch_size: int, num_workers: int = 0
+    ) -> (DataLoader, DataLoader):
         """
         Implements data loaders of type :class:`~torch.utils.data.DataLoader` for
         `self.train_set` and `self.test_set`.
@@ -53,7 +55,7 @@ class BaseADDataset(ABC):
 
 
 class BaseNet(nn.Module):
-    """ Base class for a neural network. """
+    """Base class for a neural network."""
 
     def __init__(self, rep_dim: int, in_features: int):
         super().__init__()
@@ -64,25 +66,34 @@ class BaseNet(nn.Module):
         self.in_features = in_features
 
     def forward(self, *input):
-        """ Forward pass logic. """
+        """Forward pass logic."""
 
         raise NotImplementedError
 
     def summary(self):
-        """ Network summary. """
+        """Network summary."""
 
         net_parameters = filter(lambda p: p.requires_grad, self.parameters())
         params = sum([np.prod(p.size()) for p in net_parameters])
 
-        self.logger.info('Trainable parameters: {}'.format(params))
+        self.logger.info("Trainable parameters: {}".format(params))
         self.logger.info(self)
 
 
 class BaseTrainer(ABC):
-    """ Base class for a one-group model trainer. """
+    """Base class for a one-group model trainer."""
 
-    def __init__(self, optimizer_name: str, lr: float, n_epochs: int, lr_milestones: tuple,
-                 batch_size: int, weight_decay: float, device: str, n_jobs_dataloader: int):
+    def __init__(
+        self,
+        optimizer_name: str,
+        lr: float,
+        n_epochs: int,
+        lr_milestones: tuple,
+        batch_size: int,
+        weight_decay: float,
+        device: str,
+        n_jobs_dataloader: int,
+    ):
         super().__init__()
 
         self.optimizer_name = optimizer_name
@@ -96,24 +107,26 @@ class BaseTrainer(ABC):
 
     @abstractmethod
     def train(self, dataset: BaseADDataset, net: BaseNet) -> BaseNet:
-        """ Implements train method that trains the given network using the `train_set` of dataset. """
+        """Implements train method that trains the given network using the `train_set` of dataset."""
 
         pass
 
     @abstractmethod
     def test(self, dataset: BaseADDataset, net: BaseNet):
-        """ Implements test method that evaluates the `test_set` of dataset on the given network. """
+        """Implements test method that evaluates the `test_set` of dataset on the given network."""
 
         pass
 
 
 class LoadableDataset(BaseADDataset):
-    """ Class for loading datasets into :class:`~torch.utils.data.DataLoader` objects. """
+    """Class for loading datasets into :class:`~torch.utils.data.DataLoader` objects."""
 
     def __init__(self, root: str):
         super().__init__(root)
 
-    def loaders(self, batch_size: int, num_workers: int = 0) -> (DataLoader, DataLoader):
+    def loaders(
+        self, batch_size: int, num_workers: int = 0
+    ) -> (DataLoader, DataLoader):
         """
         Loads the dataset to :class:`~torch.utils.data.DataLoader` objects.
 
@@ -129,14 +142,14 @@ class LoadableDataset(BaseADDataset):
             dataset=self.train_set,
             batch_size=batch_size,
             shuffle=False,
-            num_workers=num_workers
+            num_workers=num_workers,
         )
 
         test_loader = DataLoader(
             dataset=self.test_set,
             batch_size=batch_size,
             shuffle=False,
-            num_workers=num_workers
+            num_workers=num_workers,
         )
 
         return train_loader, test_loader

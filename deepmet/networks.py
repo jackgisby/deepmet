@@ -70,7 +70,7 @@ class BasicMultilayer(BaseNet):
         self.fc_output = nn.Linear(250, self.rep_dim, bias=False)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """ Create and return a feed forward neural network. """
+        """Create and return a feed forward neural network."""
 
         x = F.relu(self.deep1(x))
         x = F.relu(self.deep2(x))
@@ -93,13 +93,15 @@ class CocrystalTransformer(BaseNet):
     def __init__(self, rep_dim: int, in_features: int):
         super().__init__(rep_dim, in_features)
 
-        self.seq = nn.Sequential(SAB(dim_in=self.in_features, dim_out=1000, num_heads=10),
-                                 SAB(dim_in=1000, dim_out=500, num_heads=5),
-                                 SAB(dim_in=500, dim_out=self.rep_dim, num_heads=10),
-                                 PMA(dim=self.rep_dim, num_heads=5, num_seeds=1))
+        self.seq = nn.Sequential(
+            SAB(dim_in=self.in_features, dim_out=1000, num_heads=10),
+            SAB(dim_in=1000, dim_out=500, num_heads=5),
+            SAB(dim_in=500, dim_out=self.rep_dim, num_heads=10),
+            PMA(dim=self.rep_dim, num_heads=5, num_seeds=1),
+        )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """ Create and return a feed forward neural network. """
+        """Create and return a feed forward neural network."""
 
         x = torch.split(x, self.in_features, dim=1)
         x = torch.stack(x).transpose(0, 1)
@@ -108,9 +110,11 @@ class CocrystalTransformer(BaseNet):
 
 
 class MAB(nn.Module):
-    """ MAB module. """
+    """MAB module."""
 
-    def __init__(self, dim_Q: int, dim_K: int, dim_V: int, num_heads: int, ln: bool = False):
+    def __init__(
+        self, dim_Q: int, dim_K: int, dim_V: int, num_heads: int, ln: bool = False
+    ):
         super(MAB, self).__init__()
 
         self.dim_V = dim_V
@@ -127,7 +131,7 @@ class MAB(nn.Module):
         self.fc_o = nn.Linear(dim_V, dim_V)
 
     def forward(self, Q, K):
-        """ Create and return the module. """
+        """Create and return the module."""
 
         Q = self.fc_q(Q)
         K, V = self.fc_k(K), self.fc_v(K)
@@ -137,30 +141,30 @@ class MAB(nn.Module):
         K_ = torch.cat(K.split(dim_split, 2), 0)
         V_ = torch.cat(V.split(dim_split, 2), 0)
 
-        A = torch.softmax(Q_.bmm(K_.transpose(1,2))/sqrt(self.dim_V), 2)
+        A = torch.softmax(Q_.bmm(K_.transpose(1, 2)) / sqrt(self.dim_V), 2)
         O = torch.cat((Q_ + A.bmm(V_)).split(Q.size(0), 0), 2)
-        O = O if getattr(self, 'ln0', None) is None else self.ln0(O)
+        O = O if getattr(self, "ln0", None) is None else self.ln0(O)
         O = O + torch.nn.functional.relu(self.fc_o(O))
-        O = O if getattr(self, 'ln1', None) is None else self.ln1(O)
+        O = O if getattr(self, "ln1", None) is None else self.ln1(O)
 
         return O
 
 
 class SAB(nn.Module):
-    """ SAB module. """
+    """SAB module."""
 
     def __init__(self, dim_in: int, dim_out: int, num_heads: int, ln: bool = False):
         super(SAB, self).__init__()
         self.mab = MAB(dim_in, dim_in, dim_out, num_heads, ln=ln)
 
     def forward(self, X: torch.Tensor) -> torch.Tensor:
-        """ Create and return the module. """
+        """Create and return the module."""
 
         return self.mab(X, X)
 
 
 class PMA(nn.Module):
-    """ PMA module. """
+    """PMA module."""
 
     def __init__(self, dim: int, num_heads: int, num_seeds: int, ln: bool = False):
         super(PMA, self).__init__()
@@ -171,6 +175,6 @@ class PMA(nn.Module):
         self.mab = MAB(dim, dim, dim, num_heads, ln=ln)
 
     def forward(self, X: torch.Tensor) -> torch.Tensor:
-        """ Create and return the module. """
+        """Create and return the module."""
 
         return self.mab(self.S.repeat(X.size(0), 1, 1), X)

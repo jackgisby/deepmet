@@ -32,7 +32,11 @@ class BaseTestCase(unittest.TestCase):
 
     @classmethod
     def to_test_results(cls, *args):
-        return os.path.join(os.path.dirname(os.path.realpath(__file__)), cls.temp_results_dir.name, *args)
+        return os.path.join(
+            os.path.dirname(os.path.realpath(__file__)),
+            cls.temp_results_dir.name,
+            *args
+        )
 
     @classmethod
     def setUpClass(cls):
@@ -100,8 +104,10 @@ class BaseTestCase(unittest.TestCase):
             def test(self):
                 pass
 
-        trainer_with_train_test = TrainerWithTrainTest("opt", 0.1, 5, tuple(), 5, 0.1, "cpu", 1)
+        trainer_with_train_test = TrainerWithTrainTest(
+            "opt", 0.1, 5, tuple(), 5, 0.1, "cpu", 1
+        )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
